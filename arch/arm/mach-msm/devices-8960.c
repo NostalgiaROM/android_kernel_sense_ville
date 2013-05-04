@@ -2952,6 +2952,12 @@ static struct msm_bus_vectors grp3d_init_vectors[] = {
 		.ab = 0,
 		.ib = 0,
 	},
+	{
+		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = 0,
+	}
 };
 
 static struct msm_bus_vectors grp3d_low_vectors[] = {
@@ -2961,6 +2967,12 @@ static struct msm_bus_vectors grp3d_low_vectors[] = {
 		.ab = 0,
 		.ib = KGSL_CONVERT_TO_MBPS(1000),
 	},
+	{
+		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = KGSL_CONVERT_TO_MBPS(1000),
+	}
 };
 
 static struct msm_bus_vectors grp3d_nominal_low_vectors[] = {
@@ -2970,6 +2982,12 @@ static struct msm_bus_vectors grp3d_nominal_low_vectors[] = {
 		.ab = 0,
 		.ib = KGSL_CONVERT_TO_MBPS(2048),
 	},
+	{
+		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = KGSL_CONVERT_TO_MBPS(2048),
+	}
 };
 
 static struct msm_bus_vectors grp3d_nominal_high_vectors[] = {
@@ -2979,6 +2997,12 @@ static struct msm_bus_vectors grp3d_nominal_high_vectors[] = {
 		.ab = 0,
 		.ib = KGSL_CONVERT_TO_MBPS(2656),
 	},
+	{
+		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = KGSL_CONVERT_TO_MBPS(2656),
+	}
 };
 
 static struct msm_bus_vectors grp3d_max_vectors[] = {
@@ -2988,6 +3012,12 @@ static struct msm_bus_vectors grp3d_max_vectors[] = {
 		.ab = 0,
 		.ib = KGSL_CONVERT_TO_MBPS(3968),
 	},
+	{
+		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = KGSL_CONVERT_TO_MBPS(3968),
+	}
 };
 
 static struct msm_bus_paths grp3d_bus_scale_usecases[] = {
@@ -3136,6 +3166,11 @@ static const struct kgsl_iommu_ctx kgsl_3d0_iommu_ctxs[] = {
 	{ "gfx3d_priv", 1 },
 };
 
+static const struct kgsl_iommu_ctx kgsl_3d0_iommu1_ctxs[] = {
+	{ "gfx3d1_user", 0 },
+	{ "gfx3d1_priv", 1 },
+};
+
 static struct kgsl_device_iommu_data kgsl_3d0_iommu_data[] = {
 	{
 		.iommu_ctxs = kgsl_3d0_iommu_ctxs,
@@ -3143,6 +3178,12 @@ static struct kgsl_device_iommu_data kgsl_3d0_iommu_data[] = {
 		.physstart = 0x07C00000,
 		.physend = 0x07C00000 + SZ_1M - 1,
 	},
+	{
+		.iommu_ctxs = kgsl_3d0_iommu1_ctxs,
+		.iommu_ctx_count = ARRAY_SIZE(kgsl_3d0_iommu1_ctxs),
+		.physstart = 0x07D00000,
+		.physend = 0x07D00000 + SZ_1M - 1,
+	}
 };
 
 static struct kgsl_device_platform_data kgsl_3d0_pdata = {
