@@ -35,6 +35,9 @@
 
 extern void set_gpu_clk(unsigned int);
 
+//gboost
+int graphics_boost = 2;
+
 struct clk_pair {
 	const char *name;
 	uint map;
@@ -179,6 +182,9 @@ void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 	}
 
 	trace_kgsl_pwrlevel(device, pwr->active_pwrlevel, pwrlevel->gpu_freq);
+
+//gboost
+        graphics_boost = pwr->active_pwrlevel;
 }
 
 EXPORT_SYMBOL(kgsl_pwrctrl_pwrlevel_change);
