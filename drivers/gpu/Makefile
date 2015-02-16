@@ -7,3 +7,4 @@ endif
 ifeq ($(CONFIG_MSM_KGSL_JB_REL_RB31),y)
     obj-y += msm_rb31/
 endif
+obj-$(CONFIG_KCONTROL_GPU_MODULE_MSM)	+= kcontrol_module/
