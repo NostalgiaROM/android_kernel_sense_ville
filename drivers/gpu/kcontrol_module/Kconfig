@@ -1,5 +1,5 @@
 config KCONTROL_GPU_MODULE_MSM
-        bool "Kcontrol GPU Module for MSM"
+        tristate "Kcontrol GPU Module for MSM"
         default n
         depends on ARCH_MSM && MODULES
 	help
