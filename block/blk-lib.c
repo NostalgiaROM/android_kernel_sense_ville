@@ -37,6 +37,7 @@ static void bio_batch_end_io(struct bio *bio, int err)
  * Description:
  *    Issue a discard request for the sectors in question.
  */
+#define MAX_DISCARD_SECTORS	2097152
 int blkdev_issue_discard(struct block_device *bdev, sector_t sector,
 		sector_t nr_sects, gfp_t gfp_mask, unsigned long flags)
 {
@@ -64,6 +65,8 @@ int blkdev_issue_discard(struct block_device *bdev, sector_t sector,
 
 		max_discard_sectors &= ~(disc_sects - 1);
 	}
+
+	max_discard_sectors = min(max_discard_sectors, (unsigned int)MAX_DISCARD_SECTORS);
 
 	if (flags & BLKDEV_DISCARD_SECURE) {
 		if (!blk_queue_secdiscard(q))

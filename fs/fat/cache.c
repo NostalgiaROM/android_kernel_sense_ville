@@ -261,9 +261,14 @@ int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
 		if (nr < 0)
 			goto out;
 		else if (nr == FAT_ENT_FREE) {
-			fat_fs_error_ratelimit(sb, "%s: invalid cluster chain"
-					       " (i_pos %lld)", __func__,
-					       MSDOS_I(inode)->i_pos);
+			fat_fs_error_ratelimit(sb, "%s: (pid %d: %s) invalid cluster chain"
+					       " (i_pos %lld, i_ino %lu, cluster %d, dclus %d)",
+						   __func__,
+						   current->pid,
+						   current->comm,
+					       MSDOS_I(inode)->i_pos,
+						   inode->i_ino,
+						   cluster, *dclus);
 			nr = -EIO;
 			goto out;
 		} else if (nr == FAT_ENT_EOF) {

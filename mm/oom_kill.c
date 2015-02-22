@@ -32,11 +32,14 @@
 #include <linux/mempolicy.h>
 #include <linux/security.h>
 #include <linux/ptrace.h>
+#include <linux/ion.h>
 
 int sysctl_panic_on_oom;
 int sysctl_oom_kill_allocating_task;
 int sysctl_oom_dump_tasks = 1;
 static DEFINE_SPINLOCK(zone_scan_lock);
+
+extern void show_meminfo(void);
 
 /**
  * test_set_oom_score_adj() - set current's oom_score_adj and return old value
@@ -410,10 +413,12 @@ static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
 	cpuset_print_task_mems_allowed(current);
 	task_unlock(current);
 	dump_stack();
+	show_meminfo();
 	mem_cgroup_print_oom_info(mem, p);
 	show_mem(SHOW_MEM_FILTER_NODES);
 	if (sysctl_oom_dump_tasks)
 		dump_tasks(mem, nodemask);
+	ion_debug_iommu_show();
 }
 
 #define K(x) ((x) << (PAGE_SHIFT-10))

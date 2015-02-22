@@ -105,6 +105,7 @@
 #include <linux/sockios.h>
 #include <linux/atalk.h>
 
+
 static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
 static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
 			 unsigned long nr_segs, loff_t pos);
@@ -467,7 +468,7 @@ static struct socket *sock_alloc(void)
 	struct inode *inode;
 	struct socket *sock;
 
-	inode = new_inode(sock_mnt->mnt_sb);
+	inode = new_inode_pseudo(sock_mnt->mnt_sb);
 	if (!inode)
 		return NULL;
 
@@ -509,8 +510,15 @@ const struct file_operations bad_sock_fops = {
  *	an inode not a file.
  */
 
+int add_or_remove_port(struct sock *sk, int add_or_remove);	/* SSD_RIL: Garbage_Filter_TCP */
+
 void sock_release(struct socket *sock)
 {
+	/* ++SSD_RIL: Garbage_Filter_TCP */
+	if (sock->sk != NULL)
+		add_or_remove_port(sock->sk, 0);
+	/* --SSD_RIL: Garbage_Filter_TCP */
+
 	if (sock->ops) {
 		struct module *owner = sock->ops->owner;
 
@@ -546,7 +554,6 @@ static inline int __sock_sendmsg_nosec(struct kiocb *iocb, struct socket *sock,
 				       struct msghdr *msg, size_t size)
 {
 	struct sock_iocb *si = kiocb_to_siocb(iocb);
-
 	sock_update_classid(sock->sk);
 
 	si->sock = sock;
@@ -694,7 +701,6 @@ static inline int __sock_recvmsg_nosec(struct kiocb *iocb, struct socket *sock,
 				       struct msghdr *msg, size_t size, int flags)
 {
 	struct sock_iocb *si = kiocb_to_siocb(iocb);
-
 	sock_update_classid(sock->sk);
 
 	si->sock = sock;
@@ -702,7 +708,6 @@ static inline int __sock_recvmsg_nosec(struct kiocb *iocb, struct socket *sock,
 	si->msg = msg;
 	si->size = size;
 	si->flags = flags;
-
 	return sock->ops->recvmsg(iocb, sock, msg, size, flags);
 }
 
@@ -1080,7 +1085,12 @@ static unsigned int sock_poll(struct file *file, poll_table *wait)
 	 *      We can't return errors to poll, so it's either yes or no.
 	 */
 	sock = file->private_data;
-	return sock->ops->poll(file, sock, wait);
+	if(sock->ops == NULL) {
+		printk(KERN_ERR "[NET]sock_poll: sock->ops is NULL\n");
+		return -EFAULT;
+	} else {
+		return sock->ops->poll(file, sock, wait);
+	}
 }
 
 static int sock_mmap(struct file *file, struct vm_area_struct *vma)
@@ -1269,6 +1279,13 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 	if (err)
 		goto out_sock_release;
 	*res = sock;
+
+	/* ++SSD_RIL: Garbage_Filter_UDP */
+	#ifdef CONFIG_ARCH_MSM8960
+	if (sock->sk->sk_protocol == IPPROTO_UDP)
+		add_or_remove_port(sock->sk, 1);
+	#endif
+	/* --SSD_RIL: Garbage_Filter_UDP */
 
 	return 0;
 
@@ -1467,6 +1484,10 @@ SYSCALL_DEFINE2(listen, int, fd, int, backlog)
 			err = sock->ops->listen(sock, backlog);
 
 		fput_light(sock->file, fput_needed);
+		/* ++SSD_RIL: Garbage_Filter_TCP */
+		if (sock->sk != NULL)
+			add_or_remove_port(sock->sk, 1);
+		/* --SSD_RIL: Garbage_Filter_TCP */
 	}
 	return err;
 }

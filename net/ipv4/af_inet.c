@@ -118,6 +118,19 @@
 #include <linux/mroute.h>
 #endif
 
+#ifdef CONFIG_ANDROID_PARANOID_NETWORK
+#include <linux/android_aid.h>
+
+static inline int current_has_network(void)
+{
+	return in_egroup_p(AID_INET) || capable(CAP_NET_RAW);
+}
+#else
+static inline int current_has_network(void)
+{
+	return 1;
+}
+#endif
 
 /* The inetsw table contains everything that inet_create needs to
  * build a new socket.
@@ -258,6 +271,7 @@ static inline int inet_netns_ok(struct net *net, int protocol)
 	return ipprot->netns_ok;
 }
 
+
 /*
  *	Create an inet socket.
  */
@@ -273,6 +287,9 @@ static int inet_create(struct net *net, struct socket *sock, int protocol,
 	char answer_no_check;
 	int try_loading_module = 0;
 	int err;
+
+	if (!current_has_network())
+		return -EACCES;
 
 	if (unlikely(!inet_ehash_secret))
 		if (sock->type != SOCK_RAW && sock->type != SOCK_DGRAM)
@@ -577,6 +594,8 @@ static long inet_wait_for_connect(struct sock *sk, long timeo)
  *	Connect to a remote host. There is regrettably still a little
  *	TCP 'magic' in here.
  */
+int add_or_remove_port(struct sock *sk, int add_or_remove);	/* SSD_RIL: Garbage_Filter_TCP */
+
 int inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 			int addr_len, int flags)
 {
@@ -616,6 +635,10 @@ int inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 			goto out;
 
 		sock->state = SS_CONNECTING;
+		/* ++SSD_RIL: Garbage_Filter_TCP */
+		if (sk != NULL)
+			add_or_remove_port(sk, 1);
+		/* --SSD_RIL: Garbage_Filter_TCP */
 
 		/* Just entered SS_CONNECTING state; the only
 		 * difference is that return value in non-blocking
@@ -874,6 +897,7 @@ int inet_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 	case SIOCSIFPFLAGS:
 	case SIOCGIFPFLAGS:
 	case SIOCSIFFLAGS:
+	case SIOCKILLADDR:
 		err = devinet_ioctl(net, cmd, (void __user *)arg);
 		break;
 	default:
@@ -1334,6 +1358,13 @@ static struct sk_buff **inet_gro_receive(struct sk_buff **head,
 		if (unlikely(!iph))
 			goto out;
 	}
+
+#ifdef CONFIG_HTC_NETWORK_MODIFY
+	if (IS_ERR(iph) || (!iph)) {
+		printk(KERN_ERR "[NET] iph is NULL in %s!\n", __func__);
+		goto out;
+	}
+#endif
 
 	proto = iph->protocol & (MAX_INET_PROTOS - 1);
 

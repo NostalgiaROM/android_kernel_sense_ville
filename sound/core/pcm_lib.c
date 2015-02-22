@@ -6,8 +6,7 @@
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
+ *   the Free Software Foundation; only version 2 of the License.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -1721,6 +1720,17 @@ void snd_pcm_period_elapsed(struct snd_pcm_substream *substream)
 
 	if (PCM_RUNTIME_CHECK(substream))
 		return;
+
+	//HTC_AUD_START
+	if(substream == NULL){
+		printk(KERN_ERR "[AUD] snd_pcm_period_elapsed(), no substream instance, return\n");
+		return;
+	}else if (substream->runtime == NULL){
+		printk(KERN_ERR "[AUD] snd_pcm_period_elapsed(), no runtime instance, return\n");
+		return;
+	}
+	//HTC_AUD_END
+
 	runtime = substream->runtime;
 
 	if (runtime->transfer_ack_begin)
@@ -1961,6 +1971,9 @@ static int pcm_sanity_check(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime;
 	if (PCM_RUNTIME_CHECK(substream))
 		return -ENXIO;
+	/* TODO: consider and -EINVAL here */
+	if (substream->hw_no_buffer)
+		snd_printd("%s: warning this PCM is host less\n", __func__);
 	runtime = substream->runtime;
 	if (snd_BUG_ON(!substream->ops->copy && !runtime->dma_area))
 		return -EINVAL;
