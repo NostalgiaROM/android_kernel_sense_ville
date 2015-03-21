@@ -691,14 +691,7 @@ int scsi_get_vpd_page(struct scsi_device *sdev, u8 page, unsigned char *buf,
 {
 	int i, result;
 
-<<<<<<< HEAD
 	
-=======
-	if (sdev->skip_vpd_pages)
-		goto fail;
-
-	/* Ask for all the pages supported by this device */
->>>>>>> v3.4.106
 	result = scsi_vpd_inquiry(sdev, buf, 0, buf_len);
 	if (result)
 		goto fail;

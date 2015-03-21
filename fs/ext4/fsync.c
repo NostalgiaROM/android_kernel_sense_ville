@@ -237,7 +237,6 @@ int ext4_sync_file(struct file *file, loff_t start, loff_t end, int datasync)
 	if (journal->j_flags & JBD2_BARRIER &&
 	    !jbd2_trans_will_send_data_barrier(journal, commit_tid))
 		needs_barrier = true;
-<<<<<<< HEAD
 	jbd2_log_start_commit(journal, commit_tid);
 #ifdef CONFIG_FSYNC_DEBUG
 	fsync_t = ktime_get();
@@ -252,10 +251,6 @@ int ext4_sync_file(struct file *file, loff_t start, loff_t end, int datasync)
 	if (needs_barrier) {
 #ifdef CONFIG_FSYNC_DEBUG
 		fsync_t = ktime_get();
-=======
-	ret = jbd2_complete_transaction(journal, commit_tid);
-	if (needs_barrier)
->>>>>>> v3.4.106
 		blkdev_issue_flush(inode->i_sb->s_bdev, GFP_KERNEL, NULL);
 		fsync_diff = ktime_sub(ktime_get(), fsync_t);
 		if (ktime_to_ns(fsync_diff) >= 5000000000LL)

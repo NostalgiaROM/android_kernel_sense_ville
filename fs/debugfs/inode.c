@@ -423,7 +423,8 @@ EXPORT_SYMBOL_GPL(debugfs_remove);
 
 void debugfs_remove_recursive(struct dentry *dentry)
 {
-	struct dentry *child, *next, *parent;
+	struct dentry *child;
+	struct dentry *parent;
 
 	if (!dentry)
 		return;
@@ -433,13 +434,8 @@ void debugfs_remove_recursive(struct dentry *dentry)
 		return;
 
 	parent = dentry;
- down:
 	mutex_lock(&parent->d_inode->i_mutex);
-	list_for_each_entry_safe(child, next, &parent->d_subdirs, d_u.d_child) {
-		if (!debugfs_positive(child))
-			continue;
 
-<<<<<<< HEAD
 	while (1) {
 		if (list_empty(&parent->d_subdirs)) {
 			mutex_unlock(&parent->d_inode->i_mutex);
@@ -452,15 +448,12 @@ void debugfs_remove_recursive(struct dentry *dentry)
 				d_u.d_child);
  next_sibling:
 
-=======
-		/* perhaps simple_empty(child) makes more sense */
->>>>>>> v3.4.106
 		if (!list_empty(&child->d_subdirs)) {
 			mutex_unlock(&parent->d_inode->i_mutex);
 			parent = child;
-			goto down;
+			mutex_lock(&parent->d_inode->i_mutex);
+			continue;
 		}
-<<<<<<< HEAD
 		__debugfs_remove(child, parent);
 		if (parent->d_subdirs.next == &child->d_u.d_child) {
 			if (child->d_u.d_child.next != &parent->d_subdirs) {
@@ -474,27 +467,13 @@ void debugfs_remove_recursive(struct dentry *dentry)
 			break;
 		}
 		simple_release_fs(&debugfs_mount, &debugfs_mount_count);
-=======
- up:
-		if (!__debugfs_remove(child, parent))
-			simple_release_fs(&debugfs_mount, &debugfs_mount_count);
->>>>>>> v3.4.106
 	}
 
-	mutex_unlock(&parent->d_inode->i_mutex);
-	child = parent;
-	parent = parent->d_parent;
+	parent = dentry->d_parent;
 	mutex_lock(&parent->d_inode->i_mutex);
-
-	if (child != dentry) {
-		next = list_entry(child->d_u.d_child.next, struct dentry,
-					d_u.d_child);
-		goto up;
-	}
-
-	if (!__debugfs_remove(child, parent))
-		simple_release_fs(&debugfs_mount, &debugfs_mount_count);
+	__debugfs_remove(dentry, parent);
 	mutex_unlock(&parent->d_inode->i_mutex);
+	simple_release_fs(&debugfs_mount, &debugfs_mount_count);
 }
 EXPORT_SYMBOL_GPL(debugfs_remove_recursive);
 

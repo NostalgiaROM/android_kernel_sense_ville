@@ -1561,24 +1561,18 @@ int __init nfs_init_writepagecache(void)
 	nfs_wdata_mempool = mempool_create_slab_pool(MIN_POOL_WRITE,
 						     nfs_wdata_cachep);
 	if (nfs_wdata_mempool == NULL)
-		goto out_destroy_write_cache;
+		return -ENOMEM;
 
 	nfs_commit_mempool = mempool_create_slab_pool(MIN_POOL_COMMIT,
 						      nfs_wdata_cachep);
 	if (nfs_commit_mempool == NULL)
-		goto out_destroy_write_mempool;
+		return -ENOMEM;
 
 	nfs_congestion_kb = (16*int_sqrt(totalram_pages)) << (PAGE_SHIFT-10);
 	if (nfs_congestion_kb > 256*1024)
 		nfs_congestion_kb = 256*1024;
 
 	return 0;
-
-out_destroy_write_mempool:
-	mempool_destroy(nfs_wdata_mempool);
-out_destroy_write_cache:
-	kmem_cache_destroy(nfs_wdata_cachep);
-	return -ENOMEM;
 }
 
 void nfs_destroy_writepagecache(void)

@@ -60,15 +60,9 @@ struct msginfo {
 #include <linux/list.h>
 
 struct msg_msg {
-<<<<<<< HEAD
 	struct list_head m_list; 
 	long  m_type;          
 	int m_ts;           
-=======
-	struct list_head m_list;
-	long m_type;
-	size_t m_ts;		/* message text size */
->>>>>>> v3.4.106
 	struct msg_msgseg* next;
 	void *security;
 	

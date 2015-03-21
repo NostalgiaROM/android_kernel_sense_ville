@@ -808,7 +808,10 @@ static int register_root_hub(struct usb_hcd *hcd)
 	if (retval) {
 		dev_err (parent_dev, "can't register root hub for %s, %d\n",
 				dev_name(&usb_dev->dev), retval);
-	} else {
+	}
+	mutex_unlock(&usb_bus_list_lock);
+
+	if (retval == 0) {
 		spin_lock_irq (&hcd_root_hub_lock);
 		hcd->rh_registered = 1;
 		spin_unlock_irq (&hcd_root_hub_lock);
@@ -817,7 +820,6 @@ static int register_root_hub(struct usb_hcd *hcd)
 		if (HCD_DEAD(hcd))
 			usb_hc_died (hcd);	
 	}
-	mutex_unlock(&usb_bus_list_lock);
 
 	return retval;
 }
@@ -1453,8 +1455,6 @@ int usb_alloc_streams(struct usb_interface *interface,
 		return -EINVAL;
 	if (dev->speed != USB_SPEED_SUPER)
 		return -EINVAL;
-	if (dev->state < USB_STATE_CONFIGURED)
-		return -ENODEV;
 
 	
 	for (i = 0; i < num_eps; i++)

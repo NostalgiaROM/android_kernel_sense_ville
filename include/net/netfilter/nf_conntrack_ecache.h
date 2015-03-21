@@ -10,20 +10,11 @@
 #include <net/netfilter/nf_conntrack_extend.h>
 
 struct nf_conntrack_ecache {
-<<<<<<< HEAD
 	unsigned long cache;	
 	unsigned long missed;	
 	u16 ctmask;		
 	u16 expmask;		
 	u32 pid;		
-=======
-	unsigned long cache;	/* bitops want long */
-	unsigned long missed;	/* missed events */
-	u16 ctmask;		/* bitmask of ct events to be delivered */
-	u16 expmask;		/* bitmask of expect events to be delivered */
-	u32 pid;		/* netlink pid of destroyer */
-	struct timer_list timeout;
->>>>>>> v3.4.106
 };
 
 static inline struct nf_conntrack_ecache *

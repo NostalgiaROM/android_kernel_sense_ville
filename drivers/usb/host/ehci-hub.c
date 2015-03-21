@@ -556,15 +556,7 @@ ehci_hub_status_data (struct usb_hcd *hcd, char *buf)
 			status = STS_PCD;
 		}
 	}
-<<<<<<< HEAD
 	
-=======
-
-	/* If a resume is in progress, make sure it can finish */
-	if (ehci->resuming_ports)
-		mod_timer(&hcd->rh_timer, jiffies + msecs_to_jiffies(25));
-
->>>>>>> v3.4.106
 	spin_unlock_irqrestore (&ehci->lock, flags);
 	return status ? retval : 0;
 }

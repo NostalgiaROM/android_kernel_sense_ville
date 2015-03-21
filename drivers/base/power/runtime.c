@@ -410,6 +410,7 @@ static int rpm_suspend(struct device *dev, int rpmflags)
 		goto repeat;
 	}
 
+	dev->power.deferred_resume = false;
 	if (dev->power.no_callbacks)
 		goto no_callback;	
 
@@ -534,7 +535,6 @@ static int rpm_suspend(struct device *dev, int rpmflags)
 	wake_up_all(&dev->power.wait_queue);
 
 	if (dev->power.deferred_resume) {
-<<<<<<< HEAD
 
 		
 		
@@ -545,9 +545,6 @@ static int rpm_suspend(struct device *dev, int rpmflags)
 		
 		
 
-=======
-		dev->power.deferred_resume = false;
->>>>>>> v3.4.106
 		rpm_resume(dev, 0);
 
 		
@@ -786,12 +783,7 @@ static int rpm_resume(struct device *dev, int rpmflags)
 			if ( log_enable == 1 )
 				dev_info(dev, "%s[%d] spin_unlock\n", __func__, __LINE__);
 			spin_unlock(&dev->parent->power.lock);
-<<<<<<< HEAD
 			goto no_callback;	
-=======
-			retval = 1;
-			goto no_callback;	/* Assume success. */
->>>>>>> v3.4.106
 		}
 		if ( log_enable == 1 )
 			dev_info(dev, "%s[%d] spin_unlock\n", __func__, __LINE__);
@@ -959,16 +951,11 @@ static int rpm_resume(struct device *dev, int rpmflags)
 	if ( log_enable == 1 )
 		dev_info(dev, "%s[%d] wake_up_all+\n", __func__, __LINE__);
 	wake_up_all(&dev->power.wait_queue);
-<<<<<<< HEAD
 	if ( log_enable == 1 )
 		dev_info(dev, "%s[%d] wake_up_all-\n", __func__, __LINE__);
 	if (!retval) {
 		if ( log_enable == 1 )
 			dev_info(dev, "%s[%d] rpm_idle+\n", __func__, __LINE__);
-=======
-
-	if (retval >= 0)
->>>>>>> v3.4.106
 		rpm_idle(dev, RPM_ASYNC);
 		if ( log_enable == 1 )
 			dev_info(dev, "%s[%d] rpm_idle-\n", __func__, __LINE__);

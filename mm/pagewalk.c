@@ -119,7 +119,6 @@ static int walk_hugetlb_range(struct vm_area_struct *vma,
 	return 0;
 }
 
-<<<<<<< HEAD
 static struct vm_area_struct* hugetlb_vma(unsigned long addr, struct mm_walk *walk)
 {
 	struct vm_area_struct *vma;
@@ -142,9 +141,6 @@ static struct vm_area_struct* hugetlb_vma(unsigned long addr, struct mm_walk *wa
 	return NULL;
 }
 
-=======
-#else /* CONFIG_HUGETLB_PAGE */
->>>>>>> v3.4.106
 static int walk_hugetlb_range(struct vm_area_struct *vma,
 			      unsigned long addr, unsigned long end,
 			      struct mm_walk *walk)
@@ -169,65 +165,21 @@ int walk_page_range(unsigned long addr, unsigned long end,
 	if (!walk->mm)
 		return -EINVAL;
 
-	VM_BUG_ON(!rwsem_is_locked(&walk->mm->mmap_sem));
-
 	pgd = pgd_offset(walk->mm, addr);
 	do {
-		struct vm_area_struct *vma = NULL;
+		struct vm_area_struct *vma;
 
 		next = pgd_addr_end(addr, end);
 
-<<<<<<< HEAD
 		vma = hugetlb_vma(addr, walk);
-=======
-		/*
-		 * This function was not intended to be vma based.
-		 * But there are vma special cases to be handled:
-		 * - hugetlb vma's
-		 * - VM_PFNMAP vma's
-		 */
-		vma = find_vma(walk->mm, addr);
->>>>>>> v3.4.106
 		if (vma) {
-			/*
-			 * There are no page structures backing a VM_PFNMAP
-			 * range, so do not allow split_huge_page_pmd().
-			 */
-			if ((vma->vm_start <= addr) &&
-			    (vma->vm_flags & VM_PFNMAP)) {
+			if (vma->vm_end < next)
 				next = vma->vm_end;
-<<<<<<< HEAD
 			err = walk_hugetlb_range(vma, addr, next, walk);
 			if (err)
 				break;
 			pgd = pgd_offset(walk->mm, next);
 			continue;
-=======
-				pgd = pgd_offset(walk->mm, next);
-				continue;
-			}
-			/*
-			 * Handle hugetlb vma individually because pagetable
-			 * walk for the hugetlb page is dependent on the
-			 * architecture and we can't handled it in the same
-			 * manner as non-huge pages.
-			 */
-			if (walk->hugetlb_entry && (vma->vm_start <= addr) &&
-			    is_vm_hugetlb_page(vma)) {
-				if (vma->vm_end < next)
-					next = vma->vm_end;
-				/*
-				 * Hugepage is very tightly coupled with vma,
-				 * so walk through hugetlb entries within a
-				 * given vma.
-				 */
-				err = walk_hugetlb_range(vma, addr, next, walk);
-				if (err)
-					break;
-				pgd = pgd_offset(walk->mm, next);
-				continue;
-			}
->>>>>>> v3.4.106
 		}
 
 		if (pgd_none_or_clear_bad(pgd)) {

@@ -302,7 +302,7 @@ struct sk_buff {
 	union {
 		__u32		mark;
 		__u32		dropcount;
-		__u32		reserved_tailroom;
+		__u32		avail_size;
 	};
 
 	sk_buff_data_t		transport_header;
@@ -435,20 +435,10 @@ static inline unsigned char *skb_end_pointer(const struct sk_buff *skb)
 {
 	return skb->head + skb->end;
 }
-
-static inline unsigned int skb_end_offset(const struct sk_buff *skb)
-{
-	return skb->end;
-}
 #else
 static inline unsigned char *skb_end_pointer(const struct sk_buff *skb)
 {
 	return skb->end;
-}
-
-static inline unsigned int skb_end_offset(const struct sk_buff *skb)
-{
-	return skb->end - skb->head;
 }
 #endif
 
@@ -511,26 +501,6 @@ static inline int skb_cloned(const struct sk_buff *skb)
 	       (atomic_read(&skb_shinfo(skb)->dataref) & SKB_DATAREF_MASK) != 1;
 }
 
-<<<<<<< HEAD
-=======
-static inline int skb_unclone(struct sk_buff *skb, gfp_t pri)
-{
-	might_sleep_if(pri & __GFP_WAIT);
-
-	if (skb_cloned(skb))
-		return pskb_expand_head(skb, 0, 0, pri);
-
-	return 0;
-}
-
-/**
- *	skb_header_cloned - is the header a clone
- *	@skb: buffer to check
- *
- *	Returns true if modifying the header part of the buffer requires
- *	the data to be copied.
- */
->>>>>>> v3.4.106
 static inline int skb_header_cloned(const struct sk_buff *skb)
 {
 	int dataref;
@@ -774,27 +744,6 @@ static inline int skb_pagelen(const struct sk_buff *skb)
 	return len + skb_headlen(skb);
 }
 
-<<<<<<< HEAD
-=======
-static inline bool skb_has_frags(const struct sk_buff *skb)
-{
-	return skb_shinfo(skb)->nr_frags;
-}
-
-/**
- * __skb_fill_page_desc - initialise a paged fragment in an skb
- * @skb: buffer containing fragment to be initialised
- * @i: paged fragment index to initialise
- * @page: the page to use for this fragment
- * @off: the offset to the data with @page
- * @size: the length of the data
- *
- * Initialises the @i'th fragment of @skb to point to &size bytes at
- * offset @off within @page.
- *
- * Does not take any additional reference on the fragment.
- */
->>>>>>> v3.4.106
 static inline void __skb_fill_page_desc(struct sk_buff *skb, int i,
 					struct page *page, int off, int size)
 {
@@ -921,10 +870,7 @@ static inline int skb_tailroom(const struct sk_buff *skb)
 
 static inline int skb_availroom(const struct sk_buff *skb)
 {
-	if (skb_is_nonlinear(skb))
-		return 0;
-
-	return skb->end - skb->tail - skb->reserved_tailroom;
+	return skb_is_nonlinear(skb) ? 0 : skb->avail_size - skb->len;
 }
 
 static inline void skb_reserve(struct sk_buff *skb, int len)
@@ -1131,33 +1077,6 @@ static inline void skb_orphan(struct sk_buff *skb)
 	skb->sk		= NULL;
 }
 
-<<<<<<< HEAD
-=======
-/**
- *	skb_orphan_frags - orphan the frags contained in a buffer
- *	@skb: buffer to orphan frags from
- *	@gfp_mask: allocation mask for replacement pages
- *
- *	For each frag in the SKB which needs a destructor (i.e. has an
- *	owner) create a copy of that frag and release the original
- *	page by calling the destructor.
- */
-static inline int skb_orphan_frags(struct sk_buff *skb, gfp_t gfp_mask)
-{
-	if (likely(!(skb_shinfo(skb)->tx_flags & SKBTX_DEV_ZEROCOPY)))
-		return 0;
-	return skb_copy_ubufs(skb, gfp_mask);
-}
-
-/**
- *	__skb_queue_purge - empty a list
- *	@list: list to empty
- *
- *	Delete all buffers on an &sk_buff list. Each buffer is removed from
- *	the list and one reference dropped. This function does not take the
- *	list lock and the caller must hold the relevant locks to use it.
- */
->>>>>>> v3.4.106
 extern void skb_queue_purge(struct sk_buff_head *list);
 static inline void __skb_queue_purge(struct sk_buff_head *list)
 {
@@ -1477,8 +1396,6 @@ extern int	       skb_shift(struct sk_buff *tgt, struct sk_buff *skb,
 extern struct sk_buff *skb_segment(struct sk_buff *skb,
 				   netdev_features_t features);
 
-unsigned int skb_gso_transport_seglen(const struct sk_buff *skb);
-
 static inline void *skb_header_pointer(const struct sk_buff *skb, int offset,
 				       int len, void *buffer)
 {
@@ -1664,17 +1581,6 @@ static inline void nf_reset(struct sk_buff *skb)
 #endif
 }
 
-<<<<<<< HEAD
-=======
-static inline void nf_reset_trace(struct sk_buff *skb)
-{
-#if IS_ENABLED(CONFIG_NETFILTER_XT_TARGET_TRACE)
-	skb->nf_trace = 0;
-#endif
-}
-
-/* Note: This doesn't put any conntrack and bridge info in dst. */
->>>>>>> v3.4.106
 static inline void __nf_copy(struct sk_buff *dst, const struct sk_buff *src)
 {
 #if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
@@ -1822,7 +1728,7 @@ static inline bool skb_is_recycleable(const struct sk_buff *skb, int skb_size)
 		return false;
 
 	skb_size = SKB_DATA_ALIGN(skb_size + NET_SKB_PAD);
-	if (skb_end_offset(skb) < skb_size)
+	if (skb_end_pointer(skb) - skb->head < skb_size)
 		return false;
 
 	if (skb_shared(skb) || skb_cloned(skb))

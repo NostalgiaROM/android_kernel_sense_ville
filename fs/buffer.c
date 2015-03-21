@@ -501,21 +501,14 @@ EXPORT_SYMBOL(mark_buffer_dirty_inode);
 static void __set_page_dirty(struct page *page,
 		struct address_space *mapping, int warn)
 {
-<<<<<<< HEAD
 	spin_lock_irq(&mapping->tree_lock);
 	if (page->mapping) {	
-=======
-	unsigned long flags;
-
-	spin_lock_irqsave(&mapping->tree_lock, flags);
-	if (page->mapping) {	/* Race with truncate? */
->>>>>>> v3.4.106
 		WARN_ON_ONCE(warn && !PageUptodate(page));
 		account_page_dirtied(page, mapping);
 		radix_tree_tag_set(&mapping->page_tree,
 				page_index(page), PAGECACHE_TAG_DIRTY);
 	}
-	spin_unlock_irqrestore(&mapping->tree_lock, flags);
+	spin_unlock_irq(&mapping->tree_lock);
 	__mark_inode_dirty(mapping->host, I_DIRTY_PAGES);
 }
 
@@ -706,13 +699,7 @@ link_dev_buffers(struct page *page, struct buffer_head *head)
 	attach_page_buffers(page, head);
 }
 
-<<<<<<< HEAD
  
-=======
-/*
- * Initialise the state of a blockdev page's buffers.
- */ 
->>>>>>> v3.4.106
 static sector_t
 init_page_buffers(struct page *page, struct block_device *bdev,
 			sector_t block, int size)
@@ -736,23 +723,9 @@ init_page_buffers(struct page *page, struct block_device *bdev,
 		bh = bh->b_this_page;
 	} while (bh != head);
 
-<<<<<<< HEAD
 	return end_block;
 }
 
-=======
-	/*
-	 * Caller needs to validate requested block against end of device.
-	 */
-	return end_block;
-}
-
-/*
- * Create the page-cache page that contains the requested block.
- *
- * This is used purely for blockdev mappings.
- */
->>>>>>> v3.4.106
 static int
 grow_dev_page(struct block_device *bdev, sector_t block,
 		pgoff_t index, int size, int sizebits)
@@ -761,11 +734,7 @@ grow_dev_page(struct block_device *bdev, sector_t block,
 	struct page *page;
 	struct buffer_head *bh;
 	sector_t end_block;
-<<<<<<< HEAD
 	int ret = 0;		
-=======
-	int ret = 0;		/* Will call free_more_memory() */
->>>>>>> v3.4.106
 
 	page = find_or_create_page(inode->i_mapping, index,
 		(mapping_gfp_mask(inode->i_mapping) & ~__GFP_FS)|__GFP_MOVABLE);
@@ -778,12 +747,7 @@ grow_dev_page(struct block_device *bdev, sector_t block,
 		bh = page_buffers(page);
 		if (bh->b_size == size) {
 			end_block = init_page_buffers(page, bdev,
-<<<<<<< HEAD
 						index << sizebits, size);
-=======
-						(sector_t)index << sizebits,
-						size);
->>>>>>> v3.4.106
 			goto done;
 		}
 		if (!try_to_free_buffers(page))
@@ -796,12 +760,7 @@ grow_dev_page(struct block_device *bdev, sector_t block,
 
 	spin_lock(&inode->i_mapping->private_lock);
 	link_dev_buffers(page, bh);
-<<<<<<< HEAD
 	end_block = init_page_buffers(page, bdev, index << sizebits, size);
-=======
-	end_block = init_page_buffers(page, bdev, (sector_t)index << sizebits,
-			size);
->>>>>>> v3.4.106
 	spin_unlock(&inode->i_mapping->private_lock);
 done:
 	ret = (block < end_block) ? 1 : -ENXIO;
@@ -834,22 +793,14 @@ grow_buffers(struct block_device *bdev, sector_t block, int size)
 		return -EIO;
 	}
 
-<<<<<<< HEAD
 	
-=======
-	/* Create a page with the proper size buffers.. */
->>>>>>> v3.4.106
 	return grow_dev_page(bdev, block, index, size, sizebits);
 }
 
 static struct buffer_head *
 __getblk_slow(struct block_device *bdev, sector_t block, int size)
 {
-<<<<<<< HEAD
 	
-=======
-	/* Size must be multiple of hard sectorsize */
->>>>>>> v3.4.106
 	if (unlikely(size & (bdev_logical_block_size(bdev)-1) ||
 			(size < 512 || size > PAGE_SIZE))) {
 		printk(KERN_ERR "getblk(): invalid block size %d requested\n",
@@ -1050,17 +1001,6 @@ __find_get_block(struct block_device *bdev, sector_t block, unsigned size)
 }
 EXPORT_SYMBOL(__find_get_block);
 
-<<<<<<< HEAD
-=======
-/*
- * __getblk will locate (and, if necessary, create) the buffer_head
- * which corresponds to the passed block_device, block and size. The
- * returned buffer has its reference count incremented.
- *
- * __getblk() will lock up the machine if grow_dev_page's try_to_free_buffers()
- * attempt is failing.  FIXME, perhaps?
- */
->>>>>>> v3.4.106
 struct buffer_head *
 __getblk(struct block_device *bdev, sector_t block, unsigned size)
 {
@@ -1572,7 +1512,6 @@ int generic_write_end(struct file *file, struct address_space *mapping,
 			struct page *page, void *fsdata)
 {
 	struct inode *inode = mapping->host;
-	loff_t old_size = inode->i_size;
 	int i_size_changed = 0;
 
 	copied = block_write_end(file, mapping, pos, len, copied, page, fsdata);
@@ -1585,17 +1524,6 @@ int generic_write_end(struct file *file, struct address_space *mapping,
 	unlock_page(page);
 	page_cache_release(page);
 
-<<<<<<< HEAD
-=======
-	if (old_size < pos)
-		pagecache_isize_extended(inode, old_size, pos);
-	/*
-	 * Don't mark the inode dirty under page lock. First, it unnecessarily
-	 * makes the holding time of page lock longer. Second, it forces lock
-	 * ordering of page lock and transaction start for journaling
-	 * filesystems.
-	 */
->>>>>>> v3.4.106
 	if (i_size_changed)
 		mark_inode_dirty(inode);
 
@@ -1779,11 +1707,6 @@ static int cont_expand_zero(struct file *file, struct address_space *mapping,
 		err = 0;
 
 		balance_dirty_pages_ratelimited(mapping);
-
-		if (unlikely(fatal_signal_pending(current))) {
-			err = -EINTR;
-			goto out;
-		}
 	}
 
 	

@@ -230,10 +230,8 @@ static void tick_nohz_stop_sched_tick(struct tick_sched *ts)
 			tick_do_timer_cpu = TICK_DO_TIMER_NONE;
 	}
 
-	if (unlikely(ts->nohz_mode == NOHZ_MODE_INACTIVE)) {
-		ts->sleep_length = (ktime_t) { .tv64 = NSEC_PER_SEC/HZ };
+	if (unlikely(ts->nohz_mode == NOHZ_MODE_INACTIVE))
 		return;
-	}
 
 	if (need_resched())
 		return;
@@ -353,23 +351,14 @@ void tick_nohz_idle_enter(void)
 
 void tick_nohz_irq_exit(void)
 {
-	unsigned long flags;
 	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
 
 	if (!ts->inidle)
 		return;
-<<<<<<< HEAD
 		
 	/* Cancel the timer because CPU already waken up from the C-states*/
 	menu_hrtimer_cancel();
-=======
-
-	local_irq_save(flags);
-
->>>>>>> v3.4.106
 	tick_nohz_stop_sched_tick(ts);
-
-	local_irq_restore(flags);
 }
 
 ktime_t tick_nohz_get_sleep_length(void)
@@ -436,7 +425,6 @@ void tick_nohz_idle_exit(void)
 	
 	select_nohz_load_balancer(0);
 	tick_do_update_jiffies64(now);
-	update_cpu_load_nohz();
 
 #ifndef CONFIG_VIRT_CPU_ACCOUNTING
 	ticks = jiffies - ts->idle_jiffies;
@@ -685,7 +673,7 @@ void tick_cancel_sched_timer(int cpu)
 		hrtimer_cancel(&ts->sched_timer);
 # endif
 
-	memset(ts, 0, sizeof(*ts));
+	ts->nohz_mode = NOHZ_MODE_INACTIVE;
 }
 #endif
 

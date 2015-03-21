@@ -52,17 +52,7 @@ struct tp_module {
 	unsigned int num_tracepoints;
 	struct tracepoint * const *tracepoints_ptrs;
 };
-<<<<<<< HEAD
 #endif 
-=======
-bool trace_module_has_bad_taint(struct module *mod);
-#else
-static inline bool trace_module_has_bad_taint(struct module *mod)
-{
-	return false;
-}
-#endif /* CONFIG_MODULES */
->>>>>>> v3.4.106
 
 struct tracepoint_iter {
 #ifdef CONFIG_MODULES

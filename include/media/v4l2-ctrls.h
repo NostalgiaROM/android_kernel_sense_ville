@@ -22,11 +22,7 @@
 #define _V4L2_CTRLS_H
 
 #include <linux/list.h>
-<<<<<<< HEAD
 #include <linux/device.h>
-=======
-#include <linux/mutex.h>
->>>>>>> v3.4.106
 #include <linux/videodev2.h>
 
 struct v4l2_ctrl_handler;

@@ -392,7 +392,7 @@ static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
 	size_t size = params->u.size;
 	int error;
 	struct shmid_kernel *shp;
-	size_t numpages = (size + PAGE_SIZE - 1) >> PAGE_SHIFT;
+	int numpages = (size + PAGE_SIZE -1) >> PAGE_SHIFT;
 	struct file * file;
 	char name[13];
 	int id;
@@ -421,16 +421,10 @@ static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
 
 	sprintf (name, "SYSV%08x", key);
 	if (shmflg & SHM_HUGETLB) {
-<<<<<<< HEAD
 		
-=======
-		size_t hugesize = ALIGN(size, huge_page_size(&default_hstate));
-
-		/* hugetlb_file_setup applies strict accounting */
->>>>>>> v3.4.106
 		if (shmflg & SHM_NORESERVE)
 			acctflag = VM_NORESERVE;
-		file = hugetlb_file_setup(name, hugesize, acctflag,
+		file = hugetlb_file_setup(name, 0, size, acctflag,
 					&shp->mlock_user, HUGETLB_SHMFS_INODE);
 	} else {
 		if  ((shmflg & SHM_NORESERVE) &&

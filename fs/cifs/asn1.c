@@ -476,7 +476,6 @@ decode_negTokenInit(unsigned char *security_blob, int length,
 		}
 	}
 
-<<<<<<< HEAD
 	
 	if (asn1_header_decode(&ctx, &end, &cls, &con, &tag) == 0) {
 		if (ctx.error == ASN1_ERR_DEC_EMPTY)
@@ -523,12 +522,5 @@ decode_negTokenInit(unsigned char *security_blob, int length,
 	cFYI(1, "Need to call asn1_octets_decode() function for %s",
 		ctx.pointer);	
 decode_negtoken_exit:
-=======
-	/*
-	 * We currently ignore anything at the end of the SPNEGO blob after
-	 * the mechTypes have been parsed, since none of that info is
-	 * used at the moment.
-	 */
->>>>>>> v3.4.106
 	return 1;
 }

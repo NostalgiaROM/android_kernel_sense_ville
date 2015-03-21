@@ -49,40 +49,8 @@
 #define SYN_CAP_MULTI_BUTTON_NO(ec)	(((ec) & 0x00f000) >> 12)
 #define SYN_CAP_PRODUCT_ID(ec)		(((ec) & 0xff0000) >> 16)
 
-<<<<<<< HEAD
 #define SYN_CAP_CLICKPAD(ex0c)		((ex0c) & 0x100000) 
 #define SYN_CAP_CLICKPAD2BTN(ex0c)	((ex0c) & 0x000100) 
-=======
-/*
- * The following describes response for the 0x0c query.
- *
- * byte	mask	name			meaning
- * ----	----	-------			------------
- * 1	0x01	adjustable threshold	capacitive button sensitivity
- *					can be adjusted
- * 1	0x02	report max		query 0x0d gives max coord reported
- * 1	0x04	clearpad		sensor is ClearPad product
- * 1	0x08	advanced gesture	not particularly meaningful
- * 1	0x10	clickpad bit 0		1-button ClickPad
- * 1	0x60	multifinger mode	identifies firmware finger counting
- *					(not reporting!) algorithm.
- *					Not particularly meaningful
- * 1	0x80	covered pad		W clipped to 14, 15 == pad mostly covered
- * 2	0x01	clickpad bit 1		2-button ClickPad
- * 2	0x02	deluxe LED controls	touchpad support LED commands
- *					ala multimedia control bar
- * 2	0x04	reduced filtering	firmware does less filtering on
- *					position data, driver should watch
- *					for noise.
- * 2	0x08	image sensor		image sensor tracks 5 fingers, but only
- *					reports 2.
- * 2	0x01	uniform clickpad	whole clickpad moves instead of being
- *					hinged at the top.
- * 2	0x20	report min		query 0x0f gives min coord reported
- */
-#define SYN_CAP_CLICKPAD(ex0c)		((ex0c) & 0x100000) /* 1-button ClickPad */
-#define SYN_CAP_CLICKPAD2BTN(ex0c)	((ex0c) & 0x000100) /* 2-button ClickPad */
->>>>>>> v3.4.106
 #define SYN_CAP_MAX_DIMENSIONS(ex0c)	((ex0c) & 0x020000)
 #define SYN_CAP_MIN_DIMENSIONS(ex0c)	((ex0c) & 0x002000)
 #define SYN_CAP_ADV_GESTURE(ex0c)	((ex0c) & 0x080000)
@@ -160,16 +128,7 @@ struct synaptics_data {
 	bool mt_state_lost;			
 
 	struct synaptics_hw_state agm;
-<<<<<<< HEAD
 	bool agm_pending;			
-=======
-	bool agm_pending;			/* new AGM packet received */
-
-	/* ForcePad handling */
-	unsigned long				press_start;
-	bool					press;
-	bool					report_press;
->>>>>>> v3.4.106
 };
 
 void synaptics_module_init(void);

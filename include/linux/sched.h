@@ -120,7 +120,6 @@ extern unsigned long this_cpu_load(void);
 
 
 extern void calc_global_load(unsigned long ticks);
-extern void update_cpu_load_nohz(void);
 
 extern unsigned long get_parent_ip(unsigned long addr);
 
@@ -325,19 +324,8 @@ static inline void arch_pick_mmap_layout(struct mm_struct *mm) {}
 extern void set_dumpable(struct mm_struct *mm, int value);
 extern int get_dumpable(struct mm_struct *mm);
 
-<<<<<<< HEAD
 #define MMF_DUMPABLE      0  
 #define MMF_DUMP_SECURELY 1  
-=======
-#define SUID_DUMP_DISABLE	0	/* No setuid dumping */
-#define SUID_DUMP_USER		1	/* Dump as user of process */
-#define SUID_DUMP_ROOT		2	/* Dump as root */
-
-/* mm flags */
-/* dumpable bits */
-#define MMF_DUMPABLE      0  /* core dump is permitted */
-#define MMF_DUMP_SECURELY 1  /* core file is readable only by root */
->>>>>>> v3.4.106
 
 #define MMF_DUMPABLE_BITS 2
 #define MMF_DUMPABLE_MASK ((1 << MMF_DUMPABLE_BITS) - 1)
@@ -422,7 +410,6 @@ struct signal_struct {
 	atomic_t		sigcnt;
 	atomic_t		live;
 	int			nr_threads;
-	struct list_head	thread_head;
 
 	wait_queue_head_t	wait_chldexit;	
 
@@ -989,7 +976,6 @@ struct sched_entity {
 struct sched_rt_entity {
 	struct list_head run_list;
 	unsigned long timeout;
-	unsigned long watchdog_stamp;
 	unsigned int time_slice;
 	int nr_cpus_allowed;
 
@@ -1035,9 +1021,6 @@ struct task_struct {
 	const struct sched_class *sched_class;
 	struct sched_entity se;
 	struct sched_rt_entity rt;
-#ifdef CONFIG_CGROUP_SCHED
-	struct task_group *sched_task_group;
-#endif
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	
@@ -1099,7 +1082,6 @@ struct task_struct {
 	
 	unsigned irq_thread:1;
 #endif
-	unsigned long atomic_flags; /* Flags needing atomic access. */
 
 	pid_t pid;
 	pid_t tgid;
@@ -1121,7 +1103,6 @@ struct task_struct {
 	
 	struct pid_link pids[PIDTYPE_MAX];
 	struct list_head thread_group;
-	struct list_head thread_node;
 
 	struct completion *vfork_done;		
 	int __user *set_child_tid;		
@@ -1454,7 +1435,6 @@ static inline void put_task_struct(struct task_struct *t)
 extern void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
 extern void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
 
-<<<<<<< HEAD
 extern int task_free_register(struct notifier_block *n);
 extern int task_free_unregister(struct notifier_block *n);
 
@@ -1490,48 +1470,6 @@ extern int task_fork_unregister(struct notifier_block *n);
 #define PF_MUTEX_TESTER	0x20000000	
 #define PF_FREEZER_SKIP	0x40000000	
 
-=======
-/*
- * Per process flags
- */
-#define PF_EXITING	0x00000004	/* getting shut down */
-#define PF_EXITPIDONE	0x00000008	/* pi exit done on shut down */
-#define PF_VCPU		0x00000010	/* I'm a virtual CPU */
-#define PF_WQ_WORKER	0x00000020	/* I'm a workqueue worker */
-#define PF_FORKNOEXEC	0x00000040	/* forked but didn't exec */
-#define PF_MCE_PROCESS  0x00000080      /* process policy on mce errors */
-#define PF_SUPERPRIV	0x00000100	/* used super-user privileges */
-#define PF_DUMPCORE	0x00000200	/* dumped core */
-#define PF_SIGNALED	0x00000400	/* killed by a signal */
-#define PF_MEMALLOC	0x00000800	/* Allocating memory */
-#define PF_NPROC_EXCEEDED 0x00001000	/* set_user noticed that RLIMIT_NPROC was exceeded */
-#define PF_USED_MATH	0x00002000	/* if unset the fpu must be initialized before use */
-#define PF_NOFREEZE	0x00008000	/* this thread should not be frozen */
-#define PF_FROZEN	0x00010000	/* frozen for system suspend */
-#define PF_FSTRANS	0x00020000	/* inside a filesystem transaction */
-#define PF_KSWAPD	0x00040000	/* I am kswapd */
-#define PF_LESS_THROTTLE 0x00100000	/* Throttle me less: I clean memory */
-#define PF_KTHREAD	0x00200000	/* I am a kernel thread */
-#define PF_RANDOMIZE	0x00400000	/* randomize virtual address space */
-#define PF_SWAPWRITE	0x00800000	/* Allowed to write to swap */
-#define PF_THREAD_BOUND	0x04000000	/* Thread bound to specific cpu */
-#define PF_MCE_EARLY    0x08000000      /* Early kill for mce process policy */
-#define PF_MEMPOLICY	0x10000000	/* Non-default NUMA mempolicy */
-#define PF_MUTEX_TESTER	0x20000000	/* Thread belongs to the rt mutex tester */
-#define PF_FREEZER_SKIP	0x40000000	/* Freezer should not count it as freezable */
-
-/*
- * Only the _current_ task can read/write to tsk->flags, but other
- * tasks can access tsk->flags in readonly mode for example
- * with tsk_used_math (like during threaded core dumping).
- * There is however an exception to this rule during ptrace
- * or during fork: the ptracer task is allowed to write to the
- * child->flags of its traced child (same goes for fork, the parent
- * can write to the child->flags), because we're guaranteed the
- * child is not running and in turn not changing child->flags
- * at the same time the parent does it.
- */
->>>>>>> v3.4.106
 #define clear_stopped_child_used_math(child) do { (child)->flags &= ~PF_USED_MATH; } while (0)
 #define set_stopped_child_used_math(child) do { (child)->flags |= PF_USED_MATH; } while (0)
 #define clear_used_math() clear_stopped_child_used_math(current)
@@ -1545,28 +1483,7 @@ extern int task_fork_unregister(struct notifier_block *n);
 #define tsk_used_math(p) ((p)->flags & PF_USED_MATH)
 #define used_math() tsk_used_math(current)
 
-<<<<<<< HEAD
 #define JOBCTL_STOP_SIGMASK	0xffff	
-=======
-/* Per-process atomic flags. */
-#define PFA_SPREAD_PAGE  1      /* Spread page cache over cpuset */
-#define PFA_SPREAD_SLAB  2      /* Spread some slab caches over cpuset */
-
-#define TASK_PFA_TEST(name, func)					\
-	static inline bool task_##func(struct task_struct *p)		\
-	{ return test_bit(PFA_##name, &p->atomic_flags); }
-#define TASK_PFA_SET(name, func)					\
-	static inline void task_set_##func(struct task_struct *p)	\
-	{ set_bit(PFA_##name, &p->atomic_flags); }
-#define TASK_PFA_CLEAR(name, func)					\
-	static inline void task_clear_##func(struct task_struct *p)	\
-	{ clear_bit(PFA_##name, &p->atomic_flags); }
-
-/*
- * task->jobctl flags
- */
-#define JOBCTL_STOP_SIGMASK	0xffff	/* signr of the last group stop */
->>>>>>> v3.4.106
 
 #define JOBCTL_STOP_DEQUEUED_BIT 16	
 #define JOBCTL_STOP_PENDING_BIT	17	
@@ -1662,25 +1579,6 @@ static inline int set_cpus_allowed(struct task_struct *p, cpumask_t new_mask)
 }
 #endif
 
-<<<<<<< HEAD
-=======
-TASK_PFA_TEST(SPREAD_PAGE, spread_page)
-TASK_PFA_SET(SPREAD_PAGE, spread_page)
-TASK_PFA_CLEAR(SPREAD_PAGE, spread_page)
-
-TASK_PFA_TEST(SPREAD_SLAB, spread_slab)
-TASK_PFA_SET(SPREAD_SLAB, spread_slab)
-TASK_PFA_CLEAR(SPREAD_SLAB, spread_slab)
-
-/*
- * Do not use outside of architecture code which knows its limitations.
- *
- * sched_clock() has no promise of monotonicity or bounded drift between
- * CPUs, use (which you should not) requires disabling IRQs.
- *
- * Please use one of the three interfaces below.
- */
->>>>>>> v3.4.106
 extern unsigned long long notrace sched_clock(void);
 extern u64 cpu_clock(int cpu);
 extern u64 local_clock(void);
@@ -2036,16 +1934,6 @@ extern bool current_is_single_threaded(void);
 #define while_each_thread(g, t) \
 	while ((t = next_thread(t)) != g)
 
-#define __for_each_thread(signal, t)	\
-	list_for_each_entry_rcu(t, &(signal)->thread_head, thread_node)
-
-#define for_each_thread(p, t)		\
-	__for_each_thread((p)->signal, t)
-
-/* Careful: this is a double loop, 'break' won't work as expected. */
-#define for_each_process_thread(p, t)	\
-	for_each_process(p) for_each_thread(p, t)
-
 static inline int get_nr_threads(struct task_struct *tsk)
 {
 	return tsk->signal->nr_threads;
@@ -2120,36 +2008,16 @@ static inline void threadgroup_change_end(struct task_struct *tsk)
 	up_read(&tsk->signal->group_rwsem);
 }
 
-<<<<<<< HEAD
 static inline void threadgroup_lock(struct task_struct *tsk)
 {
 	mutex_lock(&tsk->signal->cred_guard_mutex);
-=======
-/**
- * threadgroup_lock - lock threadgroup
- * @tsk: member task of the threadgroup to lock
- *
- * Lock the threadgroup @tsk belongs to.  No new task is allowed to enter
- * and member tasks aren't allowed to exit (as indicated by PF_EXITING) or
- * change ->group_leader/pid.  This is useful for cases where the threadgroup
- * needs to stay stable across blockable operations.
- *
- * fork and exit paths explicitly call threadgroup_change_{begin|end}() for
- * synchronization.  While held, no new task will be added to threadgroup
- * and no existing live task will have its PF_EXITING set.
- *
- * de_thread() does threadgroup_change_{begin|end}() when a non-leader
- * sub-thread becomes a new leader.
- */
-static inline void threadgroup_lock(struct task_struct *tsk)
-{
->>>>>>> v3.4.106
 	down_write(&tsk->signal->group_rwsem);
 }
 
 static inline void threadgroup_unlock(struct task_struct *tsk)
 {
 	up_write(&tsk->signal->group_rwsem);
+	mutex_unlock(&tsk->signal->cred_guard_mutex);
 }
 #else
 static inline void threadgroup_change_begin(struct task_struct *tsk) {}
@@ -2321,16 +2189,7 @@ static inline void thread_group_cputime_init(struct signal_struct *sig)
 extern void recalc_sigpending_and_wake(struct task_struct *t);
 extern void recalc_sigpending(void);
 
-extern void signal_wake_up_state(struct task_struct *t, unsigned int state);
-
-static inline void signal_wake_up(struct task_struct *t, bool resume)
-{
-	signal_wake_up_state(t, resume ? TASK_WAKEKILL : 0);
-}
-static inline void ptrace_signal_wake_up(struct task_struct *t, bool resume)
-{
-	signal_wake_up_state(t, resume ? __TASK_TRACED : 0);
-}
+extern void signal_wake_up(struct task_struct *t, int resume_stopped);
 
 #ifdef CONFIG_SMP
 
@@ -2379,7 +2238,7 @@ extern int sched_group_set_rt_period(struct task_group *tg,
 extern long sched_group_rt_period(struct task_group *tg);
 extern int sched_rt_can_attach(struct task_group *tg, struct task_struct *tsk);
 #endif
-#endif /* CONFIG_CGROUP_SCHED */
+#endif
 
 extern int task_can_switch_user(struct user_struct *up,
 					struct task_struct *tsk);

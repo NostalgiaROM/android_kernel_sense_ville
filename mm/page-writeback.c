@@ -105,27 +105,6 @@ static unsigned long highmem_dirtyable_memory(unsigned long total)
 		x += zone_page_state(z, NR_FREE_PAGES) +
 		     zone_reclaimable_pages(z) - z->dirty_balance_reserve;
 	}
-<<<<<<< HEAD
-=======
-	/*
-	 * Unreclaimable memory (kernel memory or anonymous memory
-	 * without swap) can bring down the dirtyable pages below
-	 * the zone's dirty balance reserve and the above calculation
-	 * will underflow.  However we still want to add in nodes
-	 * which are below threshold (negative values) to get a more
-	 * accurate calculation but make sure that the total never
-	 * underflows.
-	 */
-	if ((long)x < 0)
-		x = 0;
-
-	/*
-	 * Make sure that the number of highmem pages is never larger
-	 * than the number of the total dirtyable memory. This can only
-	 * occur in very strange VM situations but we want to make sure
-	 * that this does not occur.
-	 */
->>>>>>> v3.4.106
 	return min(x, total);
 #else
 	return 0;
@@ -136,8 +115,8 @@ unsigned long global_dirtyable_memory(void)
 {
 	unsigned long x;
 
-	x = global_page_state(NR_FREE_PAGES) + global_reclaimable_pages();
-	x -= min(x, dirty_balance_reserve);
+	x = global_page_state(NR_FREE_PAGES) + global_reclaimable_pages() -
+	    dirty_balance_reserve;
 
 	if (!vm_highmem_is_dirtyable)
 		x -= highmem_dirtyable_memory(x);
@@ -179,27 +158,9 @@ void global_dirty_limits(unsigned long *pbackground, unsigned long *pdirty)
 
 static unsigned long zone_dirtyable_memory(struct zone *zone)
 {
-<<<<<<< HEAD
 	return zone_page_state(zone, NR_FREE_PAGES) +
 	       zone_reclaimable_pages(zone) -
 	       zone->dirty_balance_reserve;
-=======
-	/*
-	 * The effective global number of dirtyable pages may exclude
-	 * highmem as a big-picture measure to keep the ratio between
-	 * dirty memory and lowmem reasonable.
-	 *
-	 * But this function is purely about the individual zone and a
-	 * highmem zone can hold its share of dirty pages, so we don't
-	 * care about vm_highmem_is_dirtyable here.
-	 */
-	unsigned long nr_pages = zone_page_state(zone, NR_FREE_PAGES) +
-		zone_reclaimable_pages(zone);
-
-	/* don't allow this to underflow */
-	nr_pages -= min(nr_pages, zone->dirty_balance_reserve);
-	return nr_pages;
->>>>>>> v3.4.106
 }
 
 static unsigned long zone_dirty_limit(struct zone *zone)
@@ -650,16 +611,16 @@ static unsigned long dirty_poll_interval(unsigned long dirty,
 	return 1;
 }
 
-static unsigned long bdi_max_pause(struct backing_dev_info *bdi,
-				   unsigned long bdi_dirty)
+static long bdi_max_pause(struct backing_dev_info *bdi,
+			  unsigned long bdi_dirty)
 {
-	unsigned long bw = bdi->avg_write_bandwidth;
-	unsigned long t;
+	long bw = bdi->avg_write_bandwidth;
+	long t;
 
 	t = bdi_dirty / (1 + bw / roundup_pow_of_two(1 + HZ / 8));
 	t++;
 
-	return min_t(unsigned long, t, MAX_PAUSE);
+	return min_t(long, t, MAX_PAUSE);
 }
 
 static long bdi_min_pause(struct backing_dev_info *bdi,
@@ -1301,12 +1262,11 @@ int __set_page_dirty_nobuffers(struct page *page)
 	if (!TestSetPageDirty(page)) {
 		struct address_space *mapping = page_mapping(page);
 		struct address_space *mapping2;
-		unsigned long flags;
 
 		if (!mapping)
 			return 1;
 
-		spin_lock_irqsave(&mapping->tree_lock, flags);
+		spin_lock_irq(&mapping->tree_lock);
 		mapping2 = page_mapping(page);
 		if (mapping2) { 
 			BUG_ON(mapping2 != mapping);
@@ -1315,7 +1275,7 @@ int __set_page_dirty_nobuffers(struct page *page)
 			radix_tree_tag_set(&mapping->page_tree,
 				page_index(page), PAGECACHE_TAG_DIRTY);
 		}
-		spin_unlock_irqrestore(&mapping->tree_lock, flags);
+		spin_unlock_irq(&mapping->tree_lock);
 		if (mapping->host) {
 			
 			__mark_inode_dirty(mapping->host, I_DIRTY_PAGES);

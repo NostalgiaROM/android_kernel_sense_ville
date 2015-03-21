@@ -84,11 +84,7 @@ struct acm {
 	unsigned int throttled:1;			
 	unsigned int throttle_req:1;			
 	u8 bInterval;
-<<<<<<< HEAD
 	struct acm_wb *delayed_wb;			
-=======
-	struct usb_anchor delayed;			/* writes queued for a device about to be woken */
->>>>>>> v3.4.106
 };
 
 #define CDC_DATA_INTERFACE_TYPE	0x0a

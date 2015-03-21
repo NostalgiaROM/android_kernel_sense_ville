@@ -39,21 +39,10 @@ struct inet_peer {
 		struct list_head	gc_list;
 		struct rcu_head     gc_rcu;
 	};
-<<<<<<< HEAD
 	union {
 		struct {
 			atomic_t			rid;		
 			atomic_t			ip_id_count;	
-=======
-	/*
-	 * Once inet_peer is queued for deletion (refcnt == -1), following fields
-	 * are not available: rid, tcp_ts, tcp_ts_stamp
-	 * We can share memory with rcu_head to help keep inet_peer small.
-	 */
-	union {
-		struct {
-			atomic_t			rid;		/* Frag reception counter */
->>>>>>> v3.4.106
 			__u32				tcp_ts;
 			__u32				tcp_ts_stamp;
 		};
@@ -100,19 +89,11 @@ extern bool inet_peer_xrlim_allow(struct inet_peer *peer, int timeout);
 
 extern void inetpeer_invalidate_tree(int family);
 
-<<<<<<< HEAD
-=======
-/*
- * temporary check to make sure we dont access rid, tcp_ts,
- * tcp_ts_stamp if no refcount is taken on inet_peer
- */
->>>>>>> v3.4.106
 static inline void inet_peer_refcheck(const struct inet_peer *p)
 {
 	WARN_ON_ONCE(atomic_read(&p->refcnt) <= 0);
 }
 
-<<<<<<< HEAD
 
 static inline int inet_getid(struct inet_peer *p, int more)
 {
@@ -129,6 +110,3 @@ static inline int inet_getid(struct inet_peer *p, int more)
 }
 
 #endif 
-=======
-#endif /* _NET_INETPEER_H */
->>>>>>> v3.4.106

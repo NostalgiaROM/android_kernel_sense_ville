@@ -518,16 +518,11 @@ static int htree_dirblock_to_tree(struct file *dir_file,
 		if (ext4_check_dir_entry(dir, NULL, de, bh,
 				(block<<EXT4_BLOCK_SIZE_BITS(dir->i_sb))
 					 + ((char *)de - bh->b_data))) {
-<<<<<<< HEAD
 			
 			dir_file->f_pos = (dir_file->f_pos |
 					(dir->i_sb->s_blocksize - 1)) + 1;
 			brelse(bh);
 			return count;
-=======
-			/* silently ignore the rest of the block */
-			break;
->>>>>>> v3.4.106
 		}
 		ext4fs_dirhash(de->name, de->name_len, hinfo);
 		if ((hinfo->hash < start_hash) ||
@@ -759,7 +754,7 @@ static struct buffer_head * ext4_find_entry (struct inode *dir,
 	int ra_ptr = 0;		
 	int num = 0;
 	ext4_lblk_t  nblocks;
-	int i, err = 0;
+	int i, err;
 	int namelen;
 
 	*res_dir = NULL;
@@ -775,20 +770,7 @@ static struct buffer_head * ext4_find_entry (struct inode *dir,
 	}
 	if (is_dx(dir)) {
 		bh = ext4_dx_find_entry(dir, d_name, res_dir, &err);
-<<<<<<< HEAD
 		if (bh || (err != ERR_BAD_DX_DIR))
-=======
-		/*
-		 * On success, or if the error was file not found,
-		 * return.  Otherwise, fall back to doing a search the
-		 * old fashioned way.
-		 */
-		if (err == -ENOENT)
-			return NULL;
-		if (err && err != ERR_BAD_DX_DIR)
-			return ERR_PTR(err);
-		if (bh)
->>>>>>> v3.4.106
 			return bh;
 		dxtrace(printk(KERN_DEBUG "ext4_find_entry: dx failed, "
 			       "falling back\n"));
@@ -811,11 +793,6 @@ restart:
 				}
 				num++;
 				bh = ext4_getblk(NULL, dir, b++, 0, &err);
-				if (unlikely(err)) {
-					if (ra_max == 0)
-						return ERR_PTR(err);
-					break;
-				}
 				bh_use[ra_max] = bh;
 				if (bh)
 					ll_rw_block(READ | REQ_META | REQ_PRIO,
@@ -921,8 +898,6 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, stru
 		return ERR_PTR(-ENAMETOOLONG);
 
 	bh = ext4_find_entry(dir, &dentry->d_name, &de);
-	if (IS_ERR(bh))
-		return (struct dentry *) bh;
 	inode = NULL;
 	if (bh) {
 		__u32 ino = le32_to_cpu(de->inode);
@@ -937,7 +912,7 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, stru
 					 dentry->d_name.name);
 			return ERR_PTR(-EIO);
 		}
-		inode = ext4_iget_normal(dir->i_sb, ino);
+		inode = ext4_iget(dir->i_sb, ino);
 		if (inode == ERR_PTR(-ESTALE)) {
 			EXT4_ERROR_INODE(dir,
 					 "deleted inode referenced: %u",
@@ -960,8 +935,6 @@ struct dentry *ext4_get_parent(struct dentry *child)
 	struct buffer_head *bh;
 
 	bh = ext4_find_entry(child->d_inode, &dotdot, &de);
-	if (IS_ERR(bh))
-		return (struct dentry *) bh;
 	if (!bh)
 		return ERR_PTR(-ENOENT);
 	ino = le32_to_cpu(de->inode);
@@ -973,7 +946,7 @@ struct dentry *ext4_get_parent(struct dentry *child)
 		return ERR_PTR(-EIO);
 	}
 
-	return d_obtain_alias(ext4_iget_normal(child->d_inode->i_sb, ino));
+	return d_obtain_alias(ext4_iget(child->d_inode->i_sb, ino));
 }
 
 #define S_SHIFT 12
@@ -1271,43 +1244,25 @@ static int make_indexed_dir(handle_t *handle, struct dentry *dentry,
 		hinfo.hash_version += EXT4_SB(dir->i_sb)->s_hash_unsigned;
 	hinfo.seed = EXT4_SB(dir->i_sb)->s_hash_seed;
 	ext4fs_dirhash(name, namelen, &hinfo);
-	memset(frames, 0, sizeof(frames));
 	frame = frames;
 	frame->entries = entries;
 	frame->at = entries;
 	frame->bh = bh;
 	bh = bh2;
 
-	retval = ext4_handle_dirty_metadata(handle, dir, frame->bh);
-	if (retval)
-		goto out_frames;
-	retval = ext4_handle_dirty_metadata(handle, dir, bh);
-	if (retval)
-		goto out_frames;
+	ext4_handle_dirty_metadata(handle, dir, frame->bh);
+	ext4_handle_dirty_metadata(handle, dir, bh);
 
 	de = do_split(handle,dir, &bh, frame, &hinfo, &retval);
 	if (!de) {
-<<<<<<< HEAD
 		ext4_mark_inode_dirty(handle, dir);
 		dx_release(frames);
 		return retval;
-=======
-		goto out_frames;
->>>>>>> v3.4.106
 	}
 	dx_release(frames);
 
 	retval = add_dirent_to_buf(handle, dentry, inode, de, bh);
 	brelse(bh);
-	return retval;
-out_frames:
-	/*
-	 * Even if the block split failed, we have to properly write
-	 * out all the changes we did so far. Otherwise we can end up
-	 * with corrupted filesystem.
-	 */
-	ext4_mark_inode_dirty(handle, dir);
-	dx_release(frames);
 	return retval;
 }
 
@@ -1641,7 +1596,9 @@ retry:
 	err = PTR_ERR(inode);
 	if (!IS_ERR(inode)) {
 		init_special_inode(inode, inode->i_mode, rdev);
+#ifdef CONFIG_EXT4_FS_XATTR
 		inode->i_op = &ext4_special_inode_operations;
+#endif
 		err = ext4_add_nondir(handle, dentry, inode);
 	}
 	ext4_journal_stop(handle);
@@ -1811,7 +1768,7 @@ int ext4_orphan_add(handle_t *handle, struct inode *inode)
 	struct ext4_iloc iloc;
 	int err = 0, rc;
 
-	if (!ext4_handle_valid(handle) || is_bad_inode(inode))
+	if (!ext4_handle_valid(handle))
 		return 0;
 
 	mutex_lock(&EXT4_SB(sb)->s_orphan_lock);
@@ -1863,14 +1820,8 @@ int ext4_orphan_del(handle_t *handle, struct inode *inode)
 	struct ext4_iloc iloc;
 	int err = 0;
 
-<<<<<<< HEAD
 	
 	if (handle && !ext4_handle_valid(handle))
-=======
-	/* ext4_handle_valid() assumes a valid handle_t pointer */
-	if (handle && !ext4_handle_valid(handle) &&
-	    !(EXT4_SB(inode->i_sb)->s_mount_state & EXT4_ORPHAN_FS))
->>>>>>> v3.4.106
 		return 0;
 
 	mutex_lock(&EXT4_SB(inode->i_sb)->s_orphan_lock);
@@ -1946,8 +1897,6 @@ static int ext4_rmdir(struct inode *dir, struct dentry *dentry)
 
 	retval = -ENOENT;
 	bh = ext4_find_entry(dir, &dentry->d_name, &de);
-	if (IS_ERR(bh))
-		return PTR_ERR(bh);
 	if (!bh)
 		goto end_rmdir;
 
@@ -2008,8 +1957,6 @@ static int ext4_unlink(struct inode *dir, struct dentry *dentry)
 
 	retval = -ENOENT;
 	bh = ext4_find_entry(dir, &dentry->d_name, &de);
-	if (IS_ERR(bh))
-		return PTR_ERR(bh);
 	if (!bh)
 		goto end_unlink;
 
@@ -2204,17 +2151,6 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
 		ext4_handle_sync(handle);
 
 	old_bh = ext4_find_entry(old_dir, &old_dentry->d_name, &old_de);
-<<<<<<< HEAD
-=======
-	if (IS_ERR(old_bh))
-		return PTR_ERR(old_bh);
-	/*
-	 *  Check for inode number is _not_ due to possible IO errors.
-	 *  We might rmdir the source, keep it as pwd of some process
-	 *  and merrily kill the link to whatever was created under the
-	 *  same name. Goodbye sticky bit ;-<
-	 */
->>>>>>> v3.4.106
 	old_inode = old_dentry->d_inode;
 	retval = -ENOENT;
 	if (!old_bh || le32_to_cpu(old_de->inode) != old_inode->i_ino)
@@ -2222,11 +2158,6 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
 
 	new_inode = new_dentry->d_inode;
 	new_bh = ext4_find_entry(new_dir, &new_dentry->d_name, &new_de);
-	if (IS_ERR(new_bh)) {
-		retval = PTR_ERR(new_bh);
-		new_bh = NULL;
-		goto end_rename;
-	}
 	if (new_bh) {
 		if (!new_inode) {
 			brelse(new_bh);
@@ -2294,9 +2225,7 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
 		struct ext4_dir_entry_2 *old_de2;
 
 		old_bh2 = ext4_find_entry(old_dir, &old_dentry->d_name, &old_de2);
-		if (IS_ERR(old_bh2)) {
-			retval = PTR_ERR(old_bh2);
-		} else if (old_bh2) {
+		if (old_bh2) {
 			retval = ext4_delete_entry(handle, old_dir,
 						   old_de2, old_bh2);
 			brelse(old_bh2);

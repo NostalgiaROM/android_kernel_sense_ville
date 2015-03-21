@@ -88,13 +88,8 @@ static ssize_t regmap_map_read_file(struct file *file, char __user *user_buf,
 
 		
 		if (p >= *ppos) {
-<<<<<<< HEAD
 			
 			if (buf_pos >= count - 1 - tot_len)
-=======
-			/* ...but not beyond it */
-			if (buf_pos + 1 + tot_len >= count)
->>>>>>> v3.4.106
 				break;
 
 			
@@ -242,12 +237,7 @@ static const struct file_operations regmap_access_fops = {
 
 void regmap_debugfs_init(struct regmap *map)
 {
-	const char *devname = "dummy";
-
-	if (map->dev)
-		devname = dev_name(map->dev);
-
-	map->debugfs = debugfs_create_dir(devname,
+	map->debugfs = debugfs_create_dir(dev_name(map->dev),
 					  regmap_debugfs_root);
 	if (!map->debugfs) {
 		dev_warn(map->dev, "Failed to create debugfs directory\n");
