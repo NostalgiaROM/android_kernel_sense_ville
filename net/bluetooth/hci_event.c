@@ -1168,6 +1168,87 @@ static int hci_outgoing_auth_needed(struct hci_dev *hdev,
 	return 1;
 }
 
+<<<<<<< HEAD
+=======
+static inline int hci_resolve_name(struct hci_dev *hdev,
+				   struct inquiry_entry *e)
+{
+	struct hci_cp_remote_name_req cp;
+
+	memset(&cp, 0, sizeof(cp));
+
+	bacpy(&cp.bdaddr, &e->data.bdaddr);
+	cp.pscan_rep_mode = e->data.pscan_rep_mode;
+	cp.pscan_mode = e->data.pscan_mode;
+	cp.clock_offset = e->data.clock_offset;
+
+	return hci_send_cmd(hdev, HCI_OP_REMOTE_NAME_REQ, sizeof(cp), &cp);
+}
+
+static bool hci_resolve_next_name(struct hci_dev *hdev)
+{
+	struct discovery_state *discov = &hdev->discovery;
+	struct inquiry_entry *e;
+
+	if (list_empty(&discov->resolve))
+		return false;
+
+	e = hci_inquiry_cache_lookup_resolve(hdev, BDADDR_ANY, NAME_NEEDED);
+	if (!e)
+		return false;
+
+	if (hci_resolve_name(hdev, e) == 0) {
+		e->name_state = NAME_PENDING;
+		return true;
+	}
+
+	return false;
+}
+
+static void hci_check_pending_name(struct hci_dev *hdev, struct hci_conn *conn,
+				   bdaddr_t *bdaddr, u8 *name, u8 name_len)
+{
+	struct discovery_state *discov = &hdev->discovery;
+	struct inquiry_entry *e;
+
+	if (conn && !test_and_set_bit(HCI_CONN_MGMT_CONNECTED, &conn->flags))
+		mgmt_device_connected(hdev, bdaddr, ACL_LINK, 0x00, 0, name,
+				      name_len, conn->dev_class);
+
+	if (discov->state == DISCOVERY_STOPPED)
+		return;
+
+	if (discov->state == DISCOVERY_STOPPING)
+		goto discov_complete;
+
+	if (discov->state != DISCOVERY_RESOLVING)
+		return;
+
+	e = hci_inquiry_cache_lookup_resolve(hdev, bdaddr, NAME_PENDING);
+	/* If the device was not found in a list of found devices names of which
+	 * are pending. there is no need to continue resolving a next name as it
+	 * will be done upon receiving another Remote Name Request Complete
+	 * Event */
+	if (!e)
+		return;
+
+	list_del(&e->list);
+	if (name) {
+		e->name_state = NAME_KNOWN;
+		mgmt_remote_name(hdev, bdaddr, ACL_LINK, 0x00,
+				 e->data.rssi, name, name_len);
+	} else {
+		e->name_state = NAME_NOT_KNOWN;
+	}
+
+	if (hci_resolve_next_name(hdev))
+		return;
+
+discov_complete:
+	hci_discovery_set_state(hdev, DISCOVERY_STOPPED);
+}
+
+>>>>>>> v3.4.106
 static void hci_cs_remote_name_req(struct hci_dev *hdev, __u8 status)
 {
 	struct hci_cp_remote_name_req *cp;
@@ -1592,12 +1673,21 @@ static inline void hci_conn_complete_evt(struct hci_dev *hdev, struct sk_buff *s
 		if (conn->type == ACL_LINK) {
 			conn->state = BT_CONFIG;
 			hci_conn_hold(conn);
+<<<<<<< HEAD
 			conn->disc_timeout = HCI_DISCONN_TIMEOUT;
 			mgmt_connected(hdev->id, &ev->bdaddr, 0);
 		} else if (conn->type == LE_LINK) {
 			conn->state = BT_CONNECTED;
 			conn->disc_timeout = HCI_DISCONN_TIMEOUT;
 			mgmt_connected(hdev->id, &ev->bdaddr, 1);
+=======
+
+			if (!conn->out && !hci_conn_ssp_enabled(conn) &&
+			    !hci_find_link_key(hdev, &ev->bdaddr))
+				conn->disc_timeout = HCI_PAIRING_TIMEOUT;
+			else
+				conn->disc_timeout = HCI_DISCONN_TIMEOUT;
+>>>>>>> v3.4.106
 		} else
 			conn->state = BT_CONNECTED;
 
@@ -2227,7 +2317,7 @@ static inline void hci_cmd_complete_evt(struct hci_dev *hdev, struct sk_buff *sk
 	if (ev->opcode != HCI_OP_NOP)
 		del_timer(&hdev->cmd_timer);
 
-	if (ev->ncmd) {
+	if (ev->ncmd && !test_bit(HCI_RESET, &hdev->flags)) {
 		atomic_set(&hdev->cmd_cnt, 1);
 		if (!skb_queue_empty(&hdev->cmd_q))
 			tasklet_schedule(&hdev->cmd_task);
@@ -3003,6 +3093,7 @@ static inline void hci_user_ssp_confirmation_evt(struct hci_dev *hdev,
 
 	hci_dev_lock(hdev);
 
+<<<<<<< HEAD
 	if (test_bit(HCI_MGMT, &hdev->flags)) {
 		if (event == HCI_EV_USER_PASSKEY_REQUEST)
 			mgmt_user_confirm_request(hdev->id, event,
@@ -3010,6 +3101,58 @@ static inline void hci_user_ssp_confirmation_evt(struct hci_dev *hdev,
 		else
 			mgmt_user_confirm_request(hdev->id, event,
 						&ev->bdaddr, ev->passkey);
+=======
+	if (!test_bit(HCI_MGMT, &hdev->dev_flags))
+		goto unlock;
+
+	conn = hci_conn_hash_lookup_ba(hdev, ACL_LINK, &ev->bdaddr);
+	if (!conn)
+		goto unlock;
+
+	loc_mitm = (conn->auth_type & 0x01);
+	rem_mitm = (conn->remote_auth & 0x01);
+
+	/* If we require MITM but the remote device can't provide that
+	 * (it has NoInputNoOutput) then reject the confirmation
+	 * request. The only exception is when we're dedicated bonding
+	 * initiators (connect_cfm_cb set) since then we always have the MITM
+	 * bit set. */
+	if (!conn->connect_cfm_cb && loc_mitm && conn->remote_cap == 0x03) {
+		BT_DBG("Rejecting request: remote device can't provide MITM");
+		hci_send_cmd(hdev, HCI_OP_USER_CONFIRM_NEG_REPLY,
+					sizeof(ev->bdaddr), &ev->bdaddr);
+		goto unlock;
+	}
+
+	/* If no side requires MITM protection; auto-accept */
+	if ((!loc_mitm || conn->remote_cap == 0x03) &&
+				(!rem_mitm || conn->io_capability == 0x03)) {
+
+		/* If we're not the initiators request authorization to
+		 * proceed from user space (mgmt_user_confirm with
+		 * confirm_hint set to 1). The exception is if neither
+		 * side had MITM in which case we do auto-accept.
+		 */
+		if (!test_bit(HCI_CONN_AUTH_PEND, &conn->flags) &&
+		    (loc_mitm || rem_mitm)) {
+			BT_DBG("Confirming auto-accept as acceptor");
+			confirm_hint = 1;
+			goto confirm;
+		}
+
+		BT_DBG("Auto-accept of user confirmation with %ums delay",
+						hdev->auto_accept_delay);
+
+		if (hdev->auto_accept_delay > 0) {
+			int delay = msecs_to_jiffies(hdev->auto_accept_delay);
+			mod_timer(&conn->auto_accept_timer, jiffies + delay);
+			goto unlock;
+		}
+
+		hci_send_cmd(hdev, HCI_OP_USER_CONFIRM_REPLY,
+						sizeof(ev->bdaddr), &ev->bdaddr);
+		goto unlock;
+>>>>>>> v3.4.106
 	}
 
 	hci_dev_unlock(hdev);
@@ -3153,10 +3296,34 @@ static inline void hci_le_ltk_request_evt(struct hci_dev *hdev,
 
 	memcpy(cp.ltk, ltk->val, sizeof(ltk->val));
 	cp.handle = cpu_to_le16(conn->handle);
+<<<<<<< HEAD
 	conn->pin_length = ltk->pin_len;
 
 	hci_send_cmd(hdev, HCI_OP_LE_LTK_REPLY, sizeof(cp), &cp);
 
+=======
+
+	if (ltk->authenticated)
+		conn->pending_sec_level = BT_SECURITY_HIGH;
+	else
+		conn->pending_sec_level = BT_SECURITY_MEDIUM;
+
+	conn->enc_key_size = ltk->enc_size;
+
+	hci_send_cmd(hdev, HCI_OP_LE_LTK_REPLY, sizeof(cp), &cp);
+
+	/* Ref. Bluetooth Core SPEC pages 1975 and 2004. STK is a
+	 * temporary key used to encrypt a connection following
+	 * pairing. It is used during the Encrypted Session Setup to
+	 * distribute the keys. Later, security can be re-established
+	 * using a distributed LTK.
+	 */
+	if (ltk->type == HCI_SMP_STK_SLAVE) {
+		list_del(&ltk->list);
+		kfree(ltk);
+	}
+
+>>>>>>> v3.4.106
 	hci_dev_unlock(hdev);
 
 	return;

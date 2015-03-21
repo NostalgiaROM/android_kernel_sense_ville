@@ -61,7 +61,13 @@ struct trace_iterator {
 	
 	struct trace_seq	tmp_seq;
 
+<<<<<<< HEAD
 	
+=======
+	cpumask_var_t		started;
+
+	/* The below is zeroed out in pipe_read */
+>>>>>>> v3.4.106
 	struct trace_seq	seq;
 	struct trace_entry	*ent;
 	unsigned long		lost_events;
@@ -73,7 +79,7 @@ struct trace_iterator {
 	loff_t			pos;
 	long			idx;
 
-	cpumask_var_t		started;
+	/* All new field here will be zeroed out in pipe_read */
 };
 
 

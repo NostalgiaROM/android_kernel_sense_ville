@@ -347,6 +347,7 @@ static void evict_oldest_expect(struct nf_conn *master,
 	}
 }
 
+<<<<<<< HEAD
 static inline int refresh_timer(struct nf_conntrack_expect *i)
 {
 	struct nf_conn_help *master_help = nfct_help(i->master);
@@ -369,6 +370,8 @@ static inline int refresh_timer(struct nf_conntrack_expect *i)
 	return 1;
 }
 
+=======
+>>>>>>> v3.4.106
 static inline int __nf_ct_expect_check(struct nf_conntrack_expect *expect)
 {
 	const struct nf_conntrack_expect_policy *p;
@@ -377,7 +380,7 @@ static inline int __nf_ct_expect_check(struct nf_conntrack_expect *expect)
 	struct nf_conn_help *master_help = nfct_help(master);
 	struct nf_conntrack_helper *helper;
 	struct net *net = nf_ct_exp_net(expect);
-	struct hlist_node *n;
+	struct hlist_node *n, *next;
 	unsigned int h;
 	int ret = 1;
 
@@ -386,12 +389,19 @@ static inline int __nf_ct_expect_check(struct nf_conntrack_expect *expect)
 		goto out;
 	}
 	h = nf_ct_expect_dst_hash(&expect->tuple);
-	hlist_for_each_entry(i, n, &net->ct.expect_hash[h], hnode) {
+	hlist_for_each_entry_safe(i, n, next, &net->ct.expect_hash[h], hnode) {
 		if (expect_matches(i, expect)) {
+<<<<<<< HEAD
 			
 			if (refresh_timer(i)) {
 				ret = 0;
 				goto out;
+=======
+			if (del_timer(&i->timeout)) {
+				nf_ct_unlink_expect(i);
+				nf_ct_expect_put(i);
+				break;
+>>>>>>> v3.4.106
 			}
 		} else if (expect_clash(i, expect)) {
 			ret = -EBUSY;

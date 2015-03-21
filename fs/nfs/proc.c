@@ -46,6 +46,7 @@
 
 #define NFSDBG_FACILITY		NFSDBG_PROC
 
+<<<<<<< HEAD
 static int
 nfs_rpc_wrapper(struct rpc_clnt *clnt, struct rpc_message *msg, int flags)
 {
@@ -73,6 +74,11 @@ nfs_async_handle_expired_key(struct rpc_task *task)
 	return 1;
 }
 
+=======
+/*
+ * Bare-bones access to getattr: this is for nfs_read_super.
+ */
+>>>>>>> v3.4.106
 static int
 nfs_proc_get_root(struct nfs_server *server, struct nfs_fh *fhandle,
 		  struct nfs_fsinfo *info)
@@ -350,8 +356,6 @@ static void nfs_proc_unlink_rpc_prepare(struct rpc_task *task, struct nfs_unlink
 
 static int nfs_proc_unlink_done(struct rpc_task *task, struct inode *dir)
 {
-	if (nfs_async_handle_expired_key(task))
-		return 0;
 	nfs_mark_for_revalidate(dir);
 	return 1;
 }
@@ -371,8 +375,6 @@ static int
 nfs_proc_rename_done(struct rpc_task *task, struct inode *old_dir,
 		     struct inode *new_dir)
 {
-	if (nfs_async_handle_expired_key(task))
-		return 0;
 	nfs_mark_for_revalidate(old_dir);
 	nfs_mark_for_revalidate(new_dir);
 	return 1;
@@ -614,9 +616,6 @@ nfs_proc_pathconf(struct nfs_server *server, struct nfs_fh *fhandle,
 
 static int nfs_read_done(struct rpc_task *task, struct nfs_read_data *data)
 {
-	if (nfs_async_handle_expired_key(task))
-		return -EAGAIN;
-
 	nfs_invalidate_atime(data->inode);
 	if (task->tk_status >= 0) {
 		nfs_refresh_inode(data->inode, data->res.fattr);
@@ -638,9 +637,6 @@ static void nfs_proc_read_rpc_prepare(struct rpc_task *task, struct nfs_read_dat
 
 static int nfs_write_done(struct rpc_task *task, struct nfs_write_data *data)
 {
-	if (nfs_async_handle_expired_key(task))
-		return -EAGAIN;
-
 	if (task->tk_status >= 0)
 		nfs_post_op_update_inode_force_wcc(data->inode, data->res.fattr);
 	return 0;

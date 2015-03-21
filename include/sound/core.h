@@ -92,6 +92,7 @@ struct snd_device {
 
 
 struct snd_card {
+<<<<<<< HEAD
 	int number;			
 
 	char id[16];			
@@ -126,6 +127,49 @@ struct snd_card {
 	wait_queue_head_t shutdown_sleep;
 	struct device *dev;		
 	struct device *card_dev;	
+=======
+	int number;			/* number of soundcard (index to
+								snd_cards) */
+
+	char id[16];			/* id string of this card */
+	char driver[16];		/* driver name */
+	char shortname[32];		/* short name of this soundcard */
+	char longname[80];		/* name of this soundcard */
+	char mixername[80];		/* mixer name */
+	char components[128];		/* card components delimited with
+								space */
+	struct module *module;		/* top-level module */
+
+	void *private_data;		/* private data for soundcard */
+	void (*private_free) (struct snd_card *card); /* callback for freeing of
+								private data */
+	struct list_head devices;	/* devices */
+
+	unsigned int last_numid;	/* last used numeric ID */
+	struct rw_semaphore controls_rwsem;	/* controls list lock */
+	rwlock_t ctl_files_rwlock;	/* ctl_files list lock */
+	int controls_count;		/* count of all controls */
+	int user_ctl_count;		/* count of all user controls */
+	struct list_head controls;	/* all controls for this card */
+	struct list_head ctl_files;	/* active control files */
+	struct mutex user_ctl_lock;	/* protects user controls against
+					   concurrent access */
+
+	struct snd_info_entry *proc_root;	/* root for soundcard specific files */
+	struct snd_info_entry *proc_id;	/* the card id */
+	struct proc_dir_entry *proc_root_link;	/* number link to real id */
+
+	struct list_head files_list;	/* all files associated to this card */
+	struct snd_shutdown_f_ops *s_f_ops; /* file operations in the shutdown
+								state */
+	spinlock_t files_lock;		/* lock the files for this card */
+	int shutdown;			/* this card is going down */
+	int free_on_last_close;		/* free in context of file_release */
+	wait_queue_head_t shutdown_sleep;
+	atomic_t refcount;		/* refcount for disconnection */
+	struct device *dev;		/* device assigned to this card */
+	struct device *card_dev;	/* cardX object for sysfs */
+>>>>>>> v3.4.106
 
 #ifdef CONFIG_PM
 	unsigned int power_state;	
@@ -174,12 +218,22 @@ static inline int snd_power_wait(struct snd_card *card, unsigned int state) { re
 #endif 
 
 struct snd_minor {
+<<<<<<< HEAD
 	int type;			
 	int card;			
 	int device;			
 	const struct file_operations *f_ops;	
 	void *private_data;		
 	struct device *dev;		
+=======
+	int type;			/* SNDRV_DEVICE_TYPE_XXX */
+	int card;			/* card number */
+	int device;			/* device number */
+	const struct file_operations *f_ops;	/* file operations */
+	void *private_data;		/* private data for f_ops->open */
+	struct device *dev;		/* device for sysfs */
+	struct snd_card *card_ptr;	/* assigned card instance */
+>>>>>>> v3.4.106
 };
 
 static inline struct device *snd_card_get_device_link(struct snd_card *card)
@@ -264,6 +318,7 @@ int snd_card_info_done(void);
 int snd_component_add(struct snd_card *card, const char *component);
 int snd_card_file_add(struct snd_card *card, struct file *file);
 int snd_card_file_remove(struct snd_card *card, struct file *file);
+void snd_card_unref(struct snd_card *card);
 
 #define snd_card_set_dev(card, devptr) ((card)->dev = (devptr))
 

@@ -64,8 +64,13 @@ limit_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	return false;
 }
 
+<<<<<<< HEAD
 static u_int32_t
 user2credits(u_int32_t user)
+=======
+/* Precision saver. */
+static u32 user2credits(u32 user)
+>>>>>>> v3.4.106
 {
 	
 	if (user > 0xFFFFFFFF / (HZ*CREDITS_PER_JIFFY))
@@ -94,10 +99,18 @@ static int limit_mt_check(const struct xt_mtchk_param *par)
 
 	
 	r->master = priv;
+	/* User avg in seconds * XT_LIMIT_SCALE: convert to jiffies *
+	   128. */
+	priv->prev = jiffies;
+	priv->credit = user2credits(r->avg * r->burst); /* Credits full. */
 	if (r->cost == 0) {
+<<<<<<< HEAD
 		priv->prev = jiffies;
 		priv->credit = user2credits(r->avg * r->burst); 
 		r->credit_cap = user2credits(r->avg * r->burst); 
+=======
+		r->credit_cap = priv->credit; /* Credits full. */
+>>>>>>> v3.4.106
 		r->cost = user2credits(r->avg);
 	}
 	return 0;

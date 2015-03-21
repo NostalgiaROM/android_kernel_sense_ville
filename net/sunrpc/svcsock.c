@@ -1007,9 +1007,9 @@ static int svc_tcp_recvfrom(struct svc_rqst *rqstp)
 	if (len >= 0)
 		svsk->sk_tcplen += len;
 	if (len != want) {
+		svc_tcp_save_pages(svsk, rqstp);
 		if (len < 0 && len != -EAGAIN)
 			goto err_other;
-		svc_tcp_save_pages(svsk, rqstp);
 		dprintk("svc: incomplete TCP record (%d of %d)\n",
 			svsk->sk_tcplen, svsk->sk_reclen);
 		goto err_noclose;
@@ -1290,6 +1290,36 @@ static struct svc_sock *svc_setup_socket(struct svc_serv *serv,
 	return svsk;
 }
 
+<<<<<<< HEAD
+=======
+bool svc_alien_sock(struct net *net, int fd)
+{
+	int err;
+	struct socket *sock = sockfd_lookup(fd, &err);
+	bool ret = false;
+
+	if (!sock)
+		goto out;
+	if (sock_net(sock->sk) != net)
+		ret = true;
+	sockfd_put(sock);
+out:
+	return ret;
+}
+EXPORT_SYMBOL_GPL(svc_alien_sock);
+
+/**
+ * svc_addsock - add a listener socket to an RPC service
+ * @serv: pointer to RPC service to which to add a new listener
+ * @fd: file descriptor of the new listener
+ * @name_return: pointer to buffer to fill in with name of listener
+ * @len: size of the buffer
+ *
+ * Fills in socket name and returns positive length of name if successful.
+ * Name is terminated with '\n'.  On error, returns a negative errno
+ * value.
+ */
+>>>>>>> v3.4.106
 int svc_addsock(struct svc_serv *serv, const int fd, char *name_return,
 		const size_t len)
 {

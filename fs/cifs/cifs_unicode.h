@@ -256,14 +256,27 @@ UniToupper(register wchar_t uc)
 	return uc;		
 }
 
+<<<<<<< HEAD
 static inline wchar_t *
 UniStrupr(register wchar_t *upin)
+=======
+/*
+ * UniStrupr:  Upper case a unicode string
+ */
+static inline __le16 *
+UniStrupr(register __le16 *upin)
+>>>>>>> v3.4.106
 {
-	register wchar_t *up;
+	register __le16 *up;
 
 	up = upin;
+<<<<<<< HEAD
 	while (*up) {		
 		*up = UniToupper(*up);
+=======
+	while (*up) {		/* For all characters */
+		*up = cpu_to_le16(UniToupper(le16_to_cpu(*up)));
+>>>>>>> v3.4.106
 		up++;
 	}
 	return upin;		

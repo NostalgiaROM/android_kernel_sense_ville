@@ -90,7 +90,32 @@ static void cpu_hotplug_done(void)
 	mutex_unlock(&cpu_hotplug.lock);
 }
 
+<<<<<<< HEAD
 #else 
+=======
+/*
+ * Wait for currently running CPU hotplug operations to complete (if any) and
+ * disable future CPU hotplug (from sysfs). The 'cpu_add_remove_lock' protects
+ * the 'cpu_hotplug_disabled' flag. The same lock is also acquired by the
+ * hotplug path before performing hotplug operations. So acquiring that lock
+ * guarantees mutual exclusion from any currently running hotplug operations.
+ */
+void cpu_hotplug_disable(void)
+{
+	cpu_maps_update_begin();
+	cpu_hotplug_disabled = 1;
+	cpu_maps_update_done();
+}
+
+void cpu_hotplug_enable(void)
+{
+	cpu_maps_update_begin();
+	cpu_hotplug_disabled = 0;
+	cpu_maps_update_done();
+}
+
+#else /* #if CONFIG_HOTPLUG_CPU */
+>>>>>>> v3.4.106
 static void cpu_hotplug_begin(void) {}
 static void cpu_hotplug_done(void) {}
 #endif	
@@ -445,6 +470,7 @@ static int __init alloc_frozen_cpus(void)
 }
 core_initcall(alloc_frozen_cpus);
 
+<<<<<<< HEAD
 void cpu_hotplug_disable_before_freeze(void)
 {
 	cpu_maps_update_begin();
@@ -460,6 +486,19 @@ void cpu_hotplug_enable_after_thaw(void)
 	cpu_maps_update_done();
 }
 
+=======
+/*
+ * When callbacks for CPU hotplug notifications are being executed, we must
+ * ensure that the state of the system with respect to the tasks being frozen
+ * or not, as reported by the notification, remains unchanged *throughout the
+ * duration* of the execution of the callbacks.
+ * Hence we need to prevent the freezer from racing with regular CPU hotplug.
+ *
+ * This synchronization is implemented by mutually excluding regular CPU
+ * hotplug and Suspend/Hibernate call paths by hooking onto the Suspend/
+ * Hibernate notifications.
+ */
+>>>>>>> v3.4.106
 static int
 cpu_hotplug_pm_callback(struct notifier_block *nb,
 			unsigned long action, void *ptr)
@@ -468,12 +507,12 @@ cpu_hotplug_pm_callback(struct notifier_block *nb,
 
 	case PM_SUSPEND_PREPARE:
 	case PM_HIBERNATION_PREPARE:
-		cpu_hotplug_disable_before_freeze();
+		cpu_hotplug_disable();
 		break;
 
 	case PM_POST_SUSPEND:
 	case PM_POST_HIBERNATION:
-		cpu_hotplug_enable_after_thaw();
+		cpu_hotplug_enable();
 		break;
 
 	default:
@@ -565,10 +604,12 @@ void set_cpu_present(unsigned int cpu, bool present)
 
 void set_cpu_online(unsigned int cpu, bool online)
 {
-	if (online)
+	if (online) {
 		cpumask_set_cpu(cpu, to_cpumask(cpu_online_bits));
-	else
+		cpumask_set_cpu(cpu, to_cpumask(cpu_active_bits));
+	} else {
 		cpumask_clear_cpu(cpu, to_cpumask(cpu_online_bits));
+	}
 }
 
 void set_cpu_active(unsigned int cpu, bool active)

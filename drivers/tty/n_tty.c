@@ -1134,7 +1134,19 @@ static void n_tty_set_termios(struct tty_struct *tty, struct ktermios *old)
 			tty->real_raw = 0;
 	}
 	n_tty_set_room(tty);
+<<<<<<< HEAD
 	
+=======
+	/*
+	 * Fix tty hang when I_IXON(tty) is cleared, but the tty
+	 * been stopped by STOP_CHAR(tty) before it.
+	 */
+	if (!I_IXON(tty) && old && (old->c_iflag & IXON) && !tty->flow_stopped) {
+		start_tty(tty);
+	}
+
+	/* The termios change make the tty ready for I/O */
+>>>>>>> v3.4.106
 	wake_up_interruptible(&tty->write_wait);
 	wake_up_interruptible(&tty->read_wait);
 }
@@ -1268,7 +1280,8 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 
 do_it_again:
 
-	BUG_ON(!tty->read_buf);
+	if (WARN_ON(!tty->read_buf))
+		return -EAGAIN;
 
 	c = job_control(tty, file);
 	if (c < 0)
@@ -1501,7 +1514,9 @@ static ssize_t n_tty_write(struct tty_struct *tty, struct file *file,
 				tty->ops->flush_chars(tty);
 		} else {
 			while (nr > 0) {
+				mutex_lock(&tty->output_lock);
 				c = tty->ops->write(tty, b, nr);
+				mutex_unlock(&tty->output_lock);
 				if (c < 0) {
 					retval = c;
 					goto break_out;

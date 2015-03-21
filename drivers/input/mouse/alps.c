@@ -643,7 +643,17 @@ static psmouse_ret_t alps_process_byte(struct psmouse *psmouse)
 	struct alps_data *priv = psmouse->private;
 	const struct alps_model_info *model = priv->i;
 
+<<<<<<< HEAD
 	if ((psmouse->packet[0] & 0xc8) == 0x08) { 
+=======
+	/*
+	 * Check if we are dealing with a bare PS/2 packet, presumably from
+	 * a device connected to the external PS/2 port. Because bare PS/2
+	 * protocol does not have enough constant bits to self-synchronize
+	 * properly we only do this if the device is fully synchronized.
+	 */
+	if (!psmouse->out_of_sync_cnt && (psmouse->packet[0] & 0xc8) == 0x08) {
+>>>>>>> v3.4.106
 		if (psmouse->pktcnt == 3) {
 			alps_report_bare_ps2_packet(psmouse, psmouse->packet,
 						    true);
@@ -1382,6 +1392,9 @@ int alps_init(struct psmouse *psmouse)
 
 	
 	psmouse->resync_time = 0;
+
+	/* Allow 2 invalid packets without resetting device */
+	psmouse->resetafter = psmouse->pktsize * 2;
 
 	return 0;
 

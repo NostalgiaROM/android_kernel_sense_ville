@@ -513,6 +513,7 @@ static size_t account(struct entropy_store *r, size_t nbytes, int min,
 	if (r->entropy_count / 8 < min + reserved) {
 		nbytes = 0;
 	} else {
+<<<<<<< HEAD
 		
 		if (r->limit && nbytes + reserved >= r->entropy_count / 8)
 			nbytes = r->entropy_count/8 - reserved;
@@ -521,8 +522,26 @@ static size_t account(struct entropy_store *r, size_t nbytes, int min,
 			r->entropy_count -= nbytes*8;
 		else
 			r->entropy_count = reserved;
+=======
+		int entropy_count, orig;
+retry:
+		entropy_count = orig = ACCESS_ONCE(r->entropy_count);
+		/* If limited, never pull more than available */
+		if (r->limit && nbytes + reserved >= entropy_count / 8)
+			nbytes = entropy_count/8 - reserved;
 
-		if (r->entropy_count < random_write_wakeup_thresh) {
+		if (entropy_count / 8 >= nbytes + reserved) {
+			entropy_count -= nbytes*8;
+			if (cmpxchg(&r->entropy_count, orig, entropy_count) != orig)
+				goto retry;
+		} else {
+			entropy_count = reserved;
+			if (cmpxchg(&r->entropy_count, orig, entropy_count) != orig)
+				goto retry;
+		}
+>>>>>>> v3.4.106
+
+		if (entropy_count < random_write_wakeup_thresh) {
 			wake_up_interruptible(&random_write_wait);
 			kill_fasync(&fasync, SIGIO, POLL_OUT);
 		}
@@ -557,8 +576,8 @@ static void extract_buf(struct entropy_store *r, __u8 *out)
 	spin_unlock_irqrestore(&r->lock, flags);
 
 	sha_transform(hash.w, extract, workspace);
-	memset(extract, 0, sizeof(extract));
-	memset(workspace, 0, sizeof(workspace));
+	memzero_explicit(extract, sizeof(extract));
+	memzero_explicit(workspace, sizeof(workspace));
 
 	hash.w[0] ^= hash.w[3];
 	hash.w[1] ^= hash.w[4];
@@ -572,7 +591,7 @@ static void extract_buf(struct entropy_store *r, __u8 *out)
 	}
 
 	memcpy(out, &hash, EXTRACT_SIZE);
-	memset(&hash, 0, sizeof(hash));
+	memzero_explicit(&hash, sizeof(hash));
 }
 
 static ssize_t extract_entropy(struct entropy_store *r, void *buf,
@@ -604,8 +623,13 @@ static ssize_t extract_entropy(struct entropy_store *r, void *buf,
 		ret += i;
 	}
 
+<<<<<<< HEAD
 	
 	memset(tmp, 0, sizeof(tmp));
+=======
+	/* Wipe data just returned from memory */
+	memzero_explicit(tmp, sizeof(tmp));
+>>>>>>> v3.4.106
 
 	return ret;
 }
@@ -642,8 +666,13 @@ static ssize_t extract_entropy_user(struct entropy_store *r, void __user *buf,
 		ret += i;
 	}
 
+<<<<<<< HEAD
 	
 	memset(tmp, 0, sizeof(tmp));
+=======
+	/* Wipe data just returned from memory */
+	memzero_explicit(tmp, sizeof(tmp));
+>>>>>>> v3.4.106
 
 	return ret;
 }
@@ -997,12 +1026,11 @@ ctl_table random_table[] = {
 
 static u32 random_int_secret[MD5_MESSAGE_BYTES / 4] ____cacheline_aligned;
 
-static int __init random_int_secret_init(void)
+int random_int_secret_init(void)
 {
 	get_random_bytes(random_int_secret, sizeof(random_int_secret));
 	return 0;
 }
-late_initcall(random_int_secret_init);
 
 DEFINE_PER_CPU(__u32 [MD5_DIGEST_WORDS], get_random_int_hash);
 unsigned int get_random_int(void)
